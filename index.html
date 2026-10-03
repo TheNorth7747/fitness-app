@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>健身助手 · 微信小程序 MVP</title>
+<link rel="stylesheet" href="assets/css/app.css">
+<link rel="stylesheet" href="assets/css/pages.css">
+</head>
+<body>
+
+<div class="stage">
+  <!-- ===================== 桌面端说明面板 ===================== -->
+  <aside class="side">
+    <h1>健身助手</h1>
+    <div class="sub">微信小程序形态的健身训练 MVP 原型</div>
+
+    <h2>四大模块</h2>
+    <ul>
+      <li><b>首页</b> — 今日训练目标、完成度、本周日程</li>
+      <li><b>动作库</b> — 1,324 个动作，含 GIF 演示与中文要领</li>
+      <li><b>训练计划</b> — 三/四/五分化、PPL、居家、HIIT</li>
+      <li><b>我的</b> — 体重身高体脂、计划执行情况、训练历史</li>
+    </ul>
+
+    <h2>试一试</h2>
+    <ul>
+      <li>首页点 <kbd>开始训练</kbd> → 逐个动作打卡</li>
+      <li>动作库点卡片 → 看 GIF 与中文动作要领</li>
+      <li>计划页点任一计划 → 查看每日编排并切换</li>
+      <li>我的 → 点 <kbd>编辑</kbd> 改体重体脂，看趋势变化</li>
+    </ul>
+
+    <div class="src-note">
+      动作数据来自开源项目
+      <a href="https://github.com/hasaneyldrm/exercises-dataset" target="_blank" rel="noopener">
+        hasaneyldrm/exercises-dataset</a>（MIT，1,324 条）。<br>
+      图片与 GIF 版权归 © Gym visual 所有，此处仅作演示引用。<br>
+      训练计划编排与执行统计逻辑参考开源健身追踪应用的通用范式。
+    </div>
+  </aside>
+
+  <!-- ===================== 手机 ===================== -->
+  <div class="phone">
+    <div class="screen">
+      <div class="notch"></div>
+
+      <!-- 状态栏 -->
+      <div class="statusbar">
+        <span class="statusbar-time">9:41</span>
+        <span class="sb-right">
+          <!-- 信号 -->
+          <svg class="sb-icon" width="17" height="11" viewBox="0 0 17 11" fill="currentColor">
+            <rect x="0" y="7.5" width="3" height="3.5" rx="1"/>
+            <rect x="4.6" y="5.5" width="3" height="5.5" rx="1"/>
+            <rect x="9.2" y="3" width="3" height="8" rx="1"/>
+            <rect x="13.8" y="0" width="3" height="11" rx="1"/>
+          </svg>
+          <!-- WiFi -->
+          <svg class="sb-icon" width="16" height="11" viewBox="0 0 16 11" fill="currentColor">
+            <path d="M8 10.4 5.7 7.9a3.4 3.4 0 0 1 4.6 0z"/>
+            <path d="M8 5.2c1.6 0 3 .6 4.1 1.6l1.5-1.7A8 8 0 0 0 8 3a8 8 0 0 0-5.6 2.1l1.5 1.7A5.8 5.8 0 0 1 8 5.2z" opacity=".9"/>
+            <path d="M8 .8c2.7 0 5.2 1 7.1 2.7L16.7 2A11 11 0 0 0 8-.2 11 11 0 0 0-.7 2l1.6 1.5A9.8 9.8 0 0 1 8 .8z" opacity=".75"/>
+          </svg>
+          <!-- 电池 -->
+          <svg class="sb-icon" width="25" height="12" viewBox="0 0 25 12" fill="none">
+            <rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="currentColor" opacity=".4"/>
+            <rect x="2" y="2" width="16" height="8" rx="1.6" fill="currentColor"/>
+            <path d="M23 4v4a2.2 2.2 0 0 0 0-4z" fill="currentColor" opacity=".4"/>
+          </svg>
+        </span>
+      </div>
+
+      <!-- 导航栏 -->
+      <div class="navbar">
+        <button class="nav-back" style="display:none">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <div class="nav-title">首页</div>
+        <div class="capsule">
+          <span class="cap-dots"><i></i><i></i><i></i></span>
+          <span class="cap-divider"></span>
+          <span class="cap-target"></span>
+        </div>
+      </div>
+
+      <!-- 页面容器 -->
+      <main class="pages"></main>
+
+      <!-- 底部 TabBar -->
+      <nav class="tabbar"></nav>
+
+      <div class="home-bar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 数据 ===================== -->
+<script src="assets/js/data/exercises-data.js"></script>
+<script src="assets/js/data/plans-data.js"></script>
+
+<!-- ===================== 逻辑 ===================== -->
+<script src="assets/js/store.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/pages/home.js"></script>
+<script src="assets/js/pages/exercises.js"></script>
+<script src="assets/js/pages/plans.js"></script>
+<script src="assets/js/pages/workout.js"></script>
+<script src="assets/js/pages/profile.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+  // 导航栏返回按钮
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelector('.nav-back').addEventListener('click', function () {
+      App.back();
+    });
+  });
+</script>
+</body>
+</html>
