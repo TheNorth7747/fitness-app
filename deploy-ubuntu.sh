@@ -7,7 +7,27 @@
 #    scp deploy-ubuntu.sh root@服务器IP:/tmp/
 #    ssh root@服务器IP
 #    bash /tmp/deploy-ubuntu.sh
+#
+#  ⚠️ 必须用 root 或 sudo 运行（需要 apt install 和写 /etc/nginx/）：
+#    sudo bash /tmp/deploy-ubuntu.sh
 # ============================================================
+
+# ---------- 权限检查：早失败好过中途报错 ----------
+if [ "$(id -u)" -ne 0 ]; then
+    echo "=========================================="
+    echo "  ✗ 需要 root 权限"
+    echo "=========================================="
+    echo
+    echo "当前用户：$(whoami) (uid=$(id -u))"
+    echo "本脚本需要执行 apt install 并写入 /etc/nginx/，必须提权。"
+    echo
+    echo "请改用以下任一方式："
+    echo "  sudo bash $0"
+    echo "  su -            # 切到 root 后再执行本脚本"
+    echo
+    exit 1
+fi
+
 set -e
 
 REPO="https://github.com/TheNorth7747/fitness-app.git"
@@ -103,8 +123,32 @@ ln -sf /etc/nginx/sites-available/fitness /etc/nginx/sites-enabled/fitness
 rm -f /etc/nginx/sites-enabled/default
 
 nginx -t 2>&1 | sed 's/^/      /'
-systemctl reload nginx 2>/dev/null || systemctl restart nginx
-echo "      Nginx 已重载"
+
+# 启动 Nginx：兼容 systemd / sysvinit / 裸 nginx 三种环境
+echo "      启动 Nginx ..."
+if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
+    systemctl enable nginx >/dev/null 2>&1 || true
+    systemctl restart nginx
+elif [ -x /etc/init.d/nginx ]; then
+    service nginx restart || /etc/init.d/nginx restart
+else
+    # 容器或精简系统：直接前台/后台启动
+    pkill -x nginx 2>/dev/null || true
+    nginx
+fi
+
+# 确认真的起来了（最多等 5 秒）
+for i in 1 2 3 4 5; do
+    pgrep -x nginx >/dev/null 2>&1 && break
+    sleep 1
+done
+if pgrep -x nginx >/dev/null 2>&1; then
+    echo "      ✓ Nginx 已启动"
+else
+    echo "      ✗ Nginx 启动失败，诊断端口占用："
+    ss -tlnp 2>/dev/null | grep ':80' | sed 's/^/        /' || echo "        (无法读取端口信息)"
+    exit 1
+fi
 
 # ---------- 步骤 5：验证 ----------
 echo
