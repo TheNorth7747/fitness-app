@@ -3,12 +3,23 @@ import type { LegFocus, PlanCustomization } from './plans.js'
 export interface User {
   id: string
   username: string
+  /** 昵称，用于问候与头像旁展示；未设置时回退账号名 */
+  displayName: string
+  /** 头像 data URL，为空时显示首字母占位 */
+  avatar: string
   planId: string | null
   legFocus: LegFocus
   cyclePosition: number
   exerciseSelections: Record<string, string>
   planCustomization: PlanCustomization
 }
+
+export const DISPLAY_NAME_MAX = 24
+export const AVATAR_MAX_BYTES = 300_000
+
+/** 展示名优先用昵称，未设置时回退账号名 */
+export const displayNameOf = (user: Pick<User, 'displayName' | 'username'>) =>
+  user.displayName?.trim() || user.username
 
 export const MUSCLE_GROUPS = ['胸', '背', '肩', '手臂', '腿', '臀', '核心', '有氧', '其他'] as const
 export type MuscleGroup = typeof MUSCLE_GROUPS[number]

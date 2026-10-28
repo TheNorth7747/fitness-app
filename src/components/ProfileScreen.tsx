@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import type { User, WorkoutRecord } from '../../shared/api'
+import { displayNameOf, type User, type WorkoutRecord } from '../../shared/api'
 import { buildExerciseTrends, type ExerciseTrend } from '../../shared/progression'
 import { getPlan, RECOMMENDED_SETS_MAX, RECOMMENDED_SETS_MIN } from '../../shared/plans'
 import { api } from '../api'
+import { ProfileEditor } from './ProfileEditor'
 import { BackButton } from './BackButton'
 import { Icon } from './Icon'
 
@@ -39,7 +40,7 @@ function TrendChart({ trend, large = false }: { trend: ExerciseTrend; large?: bo
   </svg>
 }
 
-export function ProfileScreen({ user, onChangePlan, onCustomize, onLogout }: { user: User; onChangePlan: () => void; onCustomize: () => void; onLogout: () => void }) {
+export function ProfileScreen({ user, onChangePlan, onCustomize, onProfileChange, onLogout }: { user: User; onChangePlan: () => void; onCustomize: () => void; onProfileChange: (displayName: string, avatar: string) => Promise<void>; onLogout: () => void }) {
   const [workouts, setWorkouts] = useState<WorkoutRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -47,6 +48,7 @@ export function ProfileScreen({ user, onChangePlan, onCustomize, onLogout }: { u
   const [expandedWorkout, setExpandedWorkout] = useState<string | null>(null)
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(() => (window as Window & { __fitdayInstallPrompt?: Event }).__fitdayInstallPrompt as BeforeInstallPromptEvent | undefined ?? null)
   const [installed, setInstalled] = useState(() => window.matchMedia('(display-mode: standalone)').matches)
+  const [editingProfile, setEditingProfile] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -106,7 +108,14 @@ export function ProfileScreen({ user, onChangePlan, onCustomize, onLogout }: { u
   }
 
   return <div className="page profile-page">
-    <header className="profile-header"><div className="avatar">{user.username.slice(0, 1).toUpperCase()}</div><div><p className="eyebrow">我的训练</p><h1>{user.username}</h1></div></header>
+    <header className="profile-header">
+      <button className="avatar avatar-button" onClick={() => setEditingProfile(true)} aria-label="编辑头像与昵称">
+        {user.avatar ? <img src={user.avatar} alt=""/> : <span>{displayNameOf(user).slice(0, 1).toUpperCase()}</span>}
+        <span className="avatar-edit"><Icon name="camera" size={14}/></span>
+      </button>
+      <div><p className="eyebrow">我的训练</p><h1>{displayNameOf(user)}</h1>{user.displayName && <p className="profile-username">@{user.username}</p>}</div>
+      <button className="icon-button" onClick={() => setEditingProfile(true)} aria-label="编辑资料"><Icon name="edit"/></button>
+    </header>
     <section className="stats-grid"><div><strong>{workouts.length}</strong><span>累计训练</span></div><div><strong>{workouts.reduce((sum, item) => sum + item.sets.length, 0)}</strong><span>完成组数</span></div><div><strong>{Math.round(volume)}</strong><span>累计容量 kg</span></div></section>
 
     <section className="section-block"><div className="section-title"><h2>当前计划</h2></div><button className="current-plan" onClick={onChangePlan}><span><small>{plan.location === 'gym' ? '健身房' : '居家'} · {plan.days.length} 天循环</small><strong>{plan.name}</strong><span>下一站：{plan.days[user.cyclePosition % plan.days.length].name}</span></span><Icon name="arrow"/></button>
@@ -147,8 +156,9 @@ export function ProfileScreen({ user, onChangePlan, onCustomize, onLogout }: { u
     </section>
 
     <button className="logout-button" onClick={onLogout}><Icon name="logout"/>退出登录</button>
-    <p className="attribution">Fitday v1.4.0<br/>动作数据：hasaneyldrm/exercises-dataset<br/>媒体：© Gym visual · 计划参考：B站好人松松</p>
+    <p className="attribution">Fitday v1.5.0<br/>动作数据：hasaneyldrm/exercises-dataset<br/>媒体：© Gym visual · 计划参考：B站好人松松</p>
 
+    {editingProfile && <ProfileEditor user={user} onSave={async (displayName, avatar) => { await onProfileChange(displayName, avatar); setEditingProfile(false) }} onClose={() => setEditingProfile(false)}/>}
     {selectedTrend && <div className="modal-backdrop" onClick={() => setSelectedTrend(null)}><article className="exercise-modal trend-detail" onClick={(event) => event.stopPropagation()}>
       <div className="sheet-topbar"><BackButton label="返回我的" onClick={() => setSelectedTrend(null)}/><button className="icon-button" onClick={() => setSelectedTrend(null)} aria-label="关闭趋势详情"><Icon name="close"/></button></div>
       <p className="eyebrow">动作趋势</p><h2>{selectedTrend.name}</h2>

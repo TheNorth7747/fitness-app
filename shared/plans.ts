@@ -176,19 +176,32 @@ export const getPlans = (focus: LegFocus = 'quads'): TrainingPlan[] => [
 export const getPlan = (planId: string, focus: LegFocus = 'quads') =>
   getPlans(focus).find((plan) => plan.id === planId) ?? getPlans(focus)[0]
 
+import type { Exercise } from './api.js'
+import { findExercise, matchExercise } from './exercises.js'
+
 export interface GroupCustomization {
-  /** 用户为这一组选中的动作，顺序即训练顺序 */
-  optionKeys: string[]
-  /** optionKey -> 组数 */
+  /** 用户为这一组选中的动作（动作库 id），顺序即训练顺序 */
+  exerciseIds: string[]
+  /** exerciseId -> 组数 */
   sets: Record<string, number>
 }
 
 /** planDayId -> groupId -> 自定义内容 */
 export type PlanCustomization = Record<string, Record<string, GroupCustomization>>
 
+/** 一次训练里被安排下来的一个动作 */
 export interface PlannedExercise {
-  group: WorkoutGroup
-  option: ExerciseOption
+  /** 稳定的记录键：计划内动作用 option.key，动作库自选用 `lib:<id>` */
+  key: string
+  groupId: string
+  groupName: string
+  repRange: string
+  restSeconds: number
+  exerciseId: string
+  /** 中文名，用于展示与历史分组 */
+  name: string
+  /** 英文原名，用于匹配动作库 */
+  query: string
   sets: number
 }
 
@@ -196,6 +209,8 @@ export const SETS_MIN = 1
 export const SETS_MAX = 8
 export const RECOMMENDED_SETS_MIN = 4
 export const RECOMMENDED_SETS_MAX = 5
+/** 单个动作组最多允许安排的动作数，避免把一天做成马拉松 */
+export const MAX_EXERCISES_PER_GROUP = 6
 
 /**
  * 推荐动作数：让每个动作落在 4–5 组。
@@ -223,35 +238,81 @@ export const selectedOptions = (group: WorkoutGroup, selections: Record<string, 
 }
 
 /** 计划自带的推荐方案：动作与每个动作的组数，用于自定义时对照 */
-export const recommendedGroupPlan = (group: WorkoutGroup, selections: Record<string, string> = {}): PlannedExercise[] => {
+export const recommendedGroupPlan = (group: WorkoutGroup, exercises: Exercise[] = [], selections: Record<string, string> = {}): PlannedExercise[] => {
   const options = selectedOptions(group, selections)
   const counts = distributeSets(group.totalSets, options.length)
-  return options.map((option, index) => ({ group, option, sets: counts[index] ?? RECOMMENDED_SETS_MIN }))
+  return options.map((option, index) => ({
+    key: option.key,
+    groupId: group.id,
+    groupName: group.name,
+    repRange: group.repRange,
+    restSeconds: group.restSeconds,
+    exerciseId: matchExercise(exercises, option.query)?.id ?? '',
+    name: option.nameZh,
+    query: option.query,
+    sets: counts[index] ?? RECOMMENDED_SETS_MIN,
+  }))
 }
 
 export const clampSets = (value: number) => Math.min(SETS_MAX, Math.max(SETS_MIN, Math.round(value)))
 
-/** 合并用户自定义；动作或组数非法时回退到推荐值 */
-export const resolveGroupPlan = (group: WorkoutGroup, custom: GroupCustomization | undefined, selections: Record<string, string> = {}): PlannedExercise[] => {
-  if (!custom) return recommendedGroupPlan(group, selections)
-  const byKey = new Map(group.options.map((option) => [option.key, option]))
-  const keys = Array.from(new Set(custom.optionKeys ?? [])).filter((key) => byKey.has(key))
-  if (!keys.length) return recommendedGroupPlan(group, selections)
-  const recommended = new Map(recommendedGroupPlan(group, selections).map((item) => [item.option.key, item.sets]))
-  return keys.map((key) => ({
-    group,
-    option: byKey.get(key)!,
-    sets: clampSets(Number(custom.sets?.[key] ?? recommended.get(key) ?? RECOMMENDED_SETS_MIN)),
-  }))
+const libraryKey = (id: string) => `lib:${id}`
+
+/** 合并用户自定义；动作缺失或组数非法时回退到推荐值 */
+export const resolveGroupPlan = (
+  group: WorkoutGroup,
+  custom: GroupCustomization | undefined,
+  exercises: Exercise[] = [],
+  selections: Record<string, string> = {},
+): PlannedExercise[] => {
+  const fallback = () => recommendedGroupPlan(group, exercises, selections)
+  const ids = Array.from(new Set(custom?.exerciseIds ?? [])).slice(0, MAX_EXERCISES_PER_GROUP)
+  if (!ids.length) return fallback()
+  // 计划内候选动作：保留 option.key，历史记录与力量趋势才不会断
+  const optionByExerciseId = new Map<string, ExerciseOption>()
+  for (const option of group.options) {
+    const exercise = matchExercise(exercises, option.query)
+    if (exercise) optionByExerciseId.set(exercise.id, option)
+  }
+  const items: PlannedExercise[] = []
+  for (const id of ids) {
+    const exercise = findExercise(exercises, id)
+    if (!exercise) continue
+    const option = optionByExerciseId.get(id)
+    items.push({
+      key: option ? option.key : libraryKey(id),
+      groupId: group.id,
+      groupName: group.name,
+      repRange: group.repRange,
+      restSeconds: group.restSeconds,
+      exerciseId: id,
+      name: option ? option.nameZh : exercise.nameZh,
+      query: option ? option.query : exercise.name,
+      sets: clampSets(Number(custom?.sets?.[id] ?? RECOMMENDED_SETS_MIN)),
+    })
+  }
+  return items.length ? items : fallback()
 }
 
-export const resolveDayPlan = (day: PlanDay, customization: PlanCustomization | undefined, selections: Record<string, string> = {}): PlannedExercise[] =>
-  day.groups.flatMap((group) => resolveGroupPlan(group, customization?.[day.id]?.[group.id], selections))
+export const resolveDayPlan = (
+  day: PlanDay,
+  customization: PlanCustomization | undefined,
+  exercises: Exercise[] = [],
+  selections: Record<string, string> = {},
+): PlannedExercise[] =>
+  day.groups.flatMap((group) => resolveGroupPlan(group, customization?.[day.id]?.[group.id], exercises, selections))
 
-export const dayPlanTotals = (day: PlanDay, customization: PlanCustomization | undefined, selections: Record<string, string> = {}) => {
-  const items = resolveDayPlan(day, customization, selections)
+export const dayPlanTotals = (
+  day: PlanDay,
+  customization: PlanCustomization | undefined,
+  exercises: Exercise[] = [],
+  selections: Record<string, string> = {},
+) => {
+  const items = resolveDayPlan(day, customization, exercises, selections)
   return { exercises: items.length, sets: items.reduce((sum, item) => sum + item.sets, 0) }
 }
 
-/** 训练保存时校验：动作必须属于该训练日的某个动作组 */
+/** 训练保存时校验：允许计划内动作键，以及从动作库自选的 `lib:<id>` 键 */
 export const dayOptionKeys = (day: PlanDay) => new Set(day.groups.flatMap((group) => group.options.map((option) => option.key)))
+
+export const isLibraryKey = (key: string) => key.startsWith('lib:')

@@ -3,8 +3,9 @@ import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import {
-  clampSets, dayPlanTotals, distributeSets, getPlan, getPlans, recommendedCount, recommendedGroupPlan,
-  resolveDayPlan, resolveGroupPlan, RECOMMENDED_SETS_MAX, RECOMMENDED_SETS_MIN, SETS_MAX, SETS_MIN,
+  clampSets, dayOptionKeys, dayPlanTotals, distributeSets, getPlan, getPlans, isLibraryKey, MAX_EXERCISES_PER_GROUP,
+  recommendedCount, recommendedGroupPlan, resolveDayPlan, resolveGroupPlan, RECOMMENDED_SETS_MAX, RECOMMENDED_SETS_MIN,
+  SETS_MAX, SETS_MIN, type WorkoutGroup,
 } from '../../shared/plans.js'
 
 test('offers four selectable plans across gym and home', () => {
@@ -67,17 +68,28 @@ test('every plan option resolves to a real bundled exercise', async () => {
   }
 })
 
+const fakeExercises = (group: WorkoutGroup) => group.options.map((option, index) => ({
+  id: `${group.id}-${index}`,
+  name: option.query,
+  nameZh: option.nameZh,
+  category: '测试', equipment: '测试', target: '测试',
+  primaryGroup: '其他' as const, equipmentGroup: '其他' as const,
+  gifUrl: '', attribution: '', instructions: [],
+}))
+
 test('every recommended exercise lands in the 4-5 set range', () => {
   for (const focus of ['quads', 'glutes'] as const) {
     for (const plan of getPlans(focus)) {
       for (const day of plan.days) {
-        const items = resolveDayPlan(day, undefined, {})
+        const exercises = day.groups.flatMap(fakeExercises)
+        const items = resolveDayPlan(day, undefined, exercises)
         for (const item of items) {
           assert.ok(item.sets >= RECOMMENDED_SETS_MIN && item.sets <= RECOMMENDED_SETS_MAX,
-            `${plan.id}/${day.id}/${item.option.key} 推荐 ${item.sets} 组，不在 ${RECOMMENDED_SETS_MIN}-${RECOMMENDED_SETS_MAX} 组`)
+            `${plan.id}/${day.id}/${item.name} 推荐 ${item.sets} 组，不在 ${RECOMMENDED_SETS_MIN}-${RECOMMENDED_SETS_MAX} 组`)
+          assert.ok(item.name.length > 0)
         }
         for (const group of day.groups) {
-          const planned = recommendedGroupPlan(group)
+          const planned = recommendedGroupPlan(group, exercises)
           assert.equal(planned.length, recommendedCount(group))
           assert.equal(planned.reduce((sum, item) => sum + item.sets, 0), group.totalSets)
           assert.ok(planned.length >= group.selectMin)
@@ -88,48 +100,77 @@ test('every recommended exercise lands in the 4-5 set range', () => {
   }
 })
 
-test('customization chooses exercises and sets, and falls back on invalid input', () => {
+test('recommended plan keeps the plan option key so history stays stable', () => {
+  const group = getPlan('gym-three', 'quads').days[0].groups[0]
+  const exercises = fakeExercises(group)
+  const planned = recommendedGroupPlan(group, exercises)
+  assert.deepEqual(planned.map((item) => item.key), group.options.slice(0, planned.length).map((option) => option.key))
+  assert.deepEqual(planned.map((item) => item.exerciseId), exercises.slice(0, planned.length).map((item) => item.id))
+})
+
+test('customization accepts any library exercise and keeps its own key', () => {
   const day = getPlan('gym-three', 'quads').days[0]
   const group = day.groups[0]
-  const first = group.options[0].key
-  const second = group.options[1].key
+  const exercises = fakeExercises(group)
+  const outside = { ...exercises[0], id: 'lib-0001', name: 'cable chest fly', nameZh: '绳索夹胸' }
 
-  const custom = resolveGroupPlan(group, { optionKeys: [second], sets: { [second]: 3 } })
-  assert.deepEqual(custom.map((item) => item.option.key), [second])
+  const custom = resolveGroupPlan(group, { exerciseIds: [outside.id], sets: { [outside.id]: 3 } }, [...exercises, outside])
+  assert.equal(custom.length, 1)
+  assert.equal(custom[0].name, '绳索夹胸')
   assert.equal(custom[0].sets, 3)
+  assert.equal(custom[0].key, `lib:${outside.id}`)
 
-  const extended = resolveGroupPlan(group, { optionKeys: [first, second], sets: { [first]: 2, [second]: 2 } })
-  assert.equal(extended.length, 2)
-  assert.equal(extended.reduce((sum, item) => sum + item.sets, 0), 4)
+  const mixed = resolveGroupPlan(group, { exerciseIds: [exercises[0].id, outside.id], sets: { [exercises[0].id]: 5, [outside.id]: 4 } }, [...exercises, outside])
+  assert.equal(mixed.length, 2)
+  assert.equal(mixed[0].key, group.options[0].key)
+  assert.equal(mixed[1].key, `lib:${outside.id}`)
+  assert.equal(mixed.reduce((sum, item) => sum + item.sets, 0), 9)
+})
 
-  // Unknown exercise key, unknown set count and out-of-range values all fall back safely.
-  const bogus = resolveGroupPlan(group, { optionKeys: ['nope'], sets: {} })
-  assert.ok(bogus.length >= 1)
-  const missingSets = resolveGroupPlan(group, { optionKeys: [second], sets: {} })
-  assert.ok(missingSets[0].sets >= RECOMMENDED_SETS_MIN)
-  const tooMany = resolveGroupPlan(group, { optionKeys: [second], sets: { [second]: 99 } })
-  assert.equal(tooMany[0].sets, SETS_MAX)
+test('customization falls back to the recommended plan on invalid input', () => {
+  const group = getPlan('gym-three', 'quads').days[0].groups[0]
+  const exercises = fakeExercises(group)
+  const fallback = recommendedGroupPlan(group, exercises)
+
+  // 动作库里不存在的 id 会被忽略，整组为空时回退推荐
+  assert.equal(resolveGroupPlan(group, { exerciseIds: ['ghost'], sets: {} }, exercises).length, fallback.length)
+  assert.equal(resolveGroupPlan(group, { exerciseIds: [], sets: {} }, exercises).length, fallback.length)
+  assert.equal(resolveGroupPlan(group, undefined, exercises).length, fallback.length)
+
+  // 组数越界会被夹紧，缺失组数回退到 4 组
+  const clamped = resolveGroupPlan(group, { exerciseIds: [exercises[0].id], sets: { [exercises[0].id]: 99 } }, exercises)
+  assert.equal(clamped[0].sets, SETS_MAX)
+  const missing = resolveGroupPlan(group, { exerciseIds: [exercises[0].id], sets: {} }, exercises)
+  assert.equal(missing[0].sets, RECOMMENDED_SETS_MIN)
   assert.equal(clampSets(0.4), SETS_MIN)
-
-  const empty = resolveGroupPlan(group, { optionKeys: [], sets: {} })
-  assert.equal(empty.length, recommendedGroupPlan(group).length)
+  // 超过上限的动作会被截断
+  const tooMany = resolveGroupPlan(group, { exerciseIds: exercises.map((item) => item.id), sets: {} }, exercises)
+  assert.ok(tooMany.length <= MAX_EXERCISES_PER_GROUP)
 })
 
 test('day totals follow the customization and stay consistent', () => {
   const day = getPlan('gym-three', 'quads').days[0]
   const group = day.groups[0]
-  const base = dayPlanTotals(day, undefined, {})
+  const exercises = day.groups.flatMap(fakeExercises)
+  const base = dayPlanTotals(day, undefined, exercises)
   assert.equal(base.sets, day.groups.reduce((sum, item) => sum + item.totalSets, 0))
-  assert.equal(base.exercises, resolveDayPlan(day, undefined, {}).length)
+  assert.equal(base.exercises, resolveDayPlan(day, undefined, exercises).length)
 
-  const customization = { [day.id]: { [group.id]: { optionKeys: [group.options[0].key], sets: { [group.options[0].key]: 4 } } } }
-  const edited = dayPlanTotals(day, customization, {})
-  const editedItems = resolveDayPlan(day, customization, {})
+  const customization = { [day.id]: { [group.id]: { exerciseIds: [exercises[0].id], sets: { [exercises[0].id]: 4 } } } }
+  const editedItems = resolveDayPlan(day, customization, exercises)
+  const edited = dayPlanTotals(day, customization, exercises)
   assert.equal(edited.sets, editedItems.reduce((sum, item) => sum + item.sets, 0))
   assert.equal(edited.exercises, editedItems.length)
-  // Only one group changed, so the rest still contributes its recommended volume.
   const restVolume = day.groups.slice(1).reduce((sum, item) => sum + item.totalSets, 0)
   assert.equal(edited.sets, 4 + restVolume)
+})
+
+test('library keys are accepted when a workout is saved', () => {
+  const day = getPlan('gym-three', 'quads').days[0]
+  const keys = dayOptionKeys(day)
+  assert.ok(keys.size > 0)
+  assert.equal(isLibraryKey('lib:0017'), true)
+  assert.equal(isLibraryKey('lat-pulldown'), false)
 })
 
 test('distributed sets never lose a set', () => {

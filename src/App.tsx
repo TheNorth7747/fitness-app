@@ -19,6 +19,8 @@ import { clearWorkoutDraft, loadWorkoutDraft, saveWorkoutDraft, type WorkoutDraf
 const GUEST_USER: User = {
   id: 'guest',
   username: '训练者',
+  displayName: '',
+  avatar: '',
   planId: 'gym-three',
   legFocus: 'quads',
   cyclePosition: 0,
@@ -124,26 +126,26 @@ function App() {
 
   if (checking) return <main className="app-loading"><div className="brand-mark">F<span>·</span></div><p>正在恢复你的训练进度</p></main>
   if (summary) return <WorkoutSummaryScreen summary={summary} onDone={() => { setSummary(null); setTab('profile') }} onHome={() => { setSummary(null); setTab('home') }}/>
-  if (user && editingDayId) return <PlanEditorScreen user={user} initialDayId={editingDayId} onSave={async (customization) => {
+  if (user && editingDayId) return <PlanEditorScreen user={user} exercises={exercises} initialDayId={editingDayId} onSave={async (customization) => {
     const result = await api.savePlanCustomization(customization)
     applyUser(result.user)
     setEditingDayId(null)
   }} onClose={() => setEditingDayId(null)}/>
-  if (user && (!user.planId || changingPlan)) return <PlanSelector initialPlan={user.planId} onCancel={user.planId ? () => setChangingPlan(false) : undefined} onComplete={(next) => { applyUser(next); setChangingPlan(false); setAuthNotice(''); setDraft(null); if (next.id) clearWorkoutDraft(next.id); setTab('home') }}/>
+  if (user && (!user.planId || changingPlan)) return <PlanSelector initialPlan={user.planId} exercises={exercises} onCancel={user.planId ? () => setChangingPlan(false) : undefined} onComplete={(next) => { applyUser(next); setChangingPlan(false); setAuthNotice(''); setDraft(null); if (next.id) clearWorkoutDraft(next.id); setTab('home') }}/>
   if (user && activeDay) return <WorkoutScreen user={user} day={activeDay.day} startedAt={activeDay.startedAt} draft={draft} exercises={exercises} offline={offline} onClose={() => setActiveDay(null)} onDraftChange={handleDraftChange} onComplete={(next, workoutSummary) => { applyUser(next); setDraft(null); setActiveDay(null); setSummary(workoutSummary) }}/>
 
   const displayUser = user ?? GUEST_USER
   return <div className={offline ? 'app-shell offline' : 'app-shell'}>
     {offline && <div className="offline-banner" role="status">离线模式 · 训练进度暂存本机，联网后请再次保存</div>}
     <main className="app-main">
-      {tab === 'home' && <HomeScreen user={displayUser} guest={!user} draft={user ? draft : null} exercises={exercises} onStart={beginWorkout} onChangePlan={requestPlanChange} onRequireAuth={() => requireAuth()} onDiscardDraft={discardDraft} onCustomize={(planDayId) => setEditingDayId(planDayId)} onChangeExercise={async (planDayId, groupId, optionKey, replaceKey) => {
+      {tab === 'home' && <HomeScreen user={displayUser} guest={!user} draft={user ? draft : null} exercises={exercises} onStart={beginWorkout} onChangePlan={requestPlanChange} onRequireAuth={() => requireAuth()} onDiscardDraft={discardDraft} onCustomize={(planDayId) => setEditingDayId(planDayId)} onOpenProfile={() => setTab('profile')} onCustomizationChange={async (customization) => {
         if (!user) return requireAuth()
-        const result = await api.selectExercise(planDayId, groupId, optionKey, replaceKey)
+        const result = await api.savePlanCustomization(customization)
         applyUser(result.user)
       }}/>}
       {tab === 'library' && <LibraryScreen exercises={exercises} loading={exerciseLoading} error={exerciseError} onRetry={fetchExercises}/>}
       {tab === 'profile' && (user
-        ? <ProfileScreen user={user} onChangePlan={requestPlanChange} onCustomize={() => { const plan = getPlan(user.planId ?? 'gym-three', user.legFocus); setEditingDayId(plan.days[user.cyclePosition % plan.days.length].id) }} onLogout={async () => {
+        ? <ProfileScreen user={user} onChangePlan={requestPlanChange} onCustomize={() => { const plan = getPlan(user.planId ?? 'gym-three', user.legFocus); setEditingDayId(plan.days[user.cyclePosition % plan.days.length].id) }} onProfileChange={async (displayName, avatar) => { const result = await api.saveProfile(displayName, avatar); applyUser(result.user) }} onLogout={async () => {
           try { await api.logout() } catch { /* Offline logout still clears this device. */ }
           clearWorkoutDraft(user.id); applyUser(null); setDraft(null); setActiveDay(null); setChangingPlan(false); setTab('profile')
         }}/>

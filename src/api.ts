@@ -1,5 +1,8 @@
 import type { EquipmentGroup, Exercise, MuscleGroup, User, WorkoutInput, WorkoutRecord } from '../shared/api'
+import { defaultMuscleForGroup, findExercise, matchExercise, searchExercises } from '../shared/exercises'
 import type { LegFocus, PlanCustomization } from '../shared/plans'
+
+export { defaultMuscleForGroup, findExercise, matchExercise, searchExercises }
 
 const request = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
   const response = await fetch(path, {
@@ -14,20 +17,20 @@ const request = async <T>(path: string, options: RequestInit = {}): Promise<T> =
 
 export const api = {
   me: () => request<{ user: User | null }>('/api/auth/me'),
-  register: (username: string, password: string, confirmPassword: string) =>
-    request<{ user: User }>('/api/auth/register', { method: 'POST', body: JSON.stringify({ username, password, confirmPassword }) }),
+  register: (username: string, password: string, confirmPassword: string, displayName = '') =>
+    request<{ user: User }>('/api/auth/register', { method: 'POST', body: JSON.stringify({ username, password, confirmPassword, displayName }) }),
   login: (username: string, password: string) =>
     request<{ user: User }>('/api/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
   logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
-  selectPlan: (planId: string, legFocus: LegFocus) =>
-    request<{ user: User }>('/api/me/plan', { method: 'PUT', body: JSON.stringify({ planId, legFocus }) }),
+  selectPlan: (planId: string, legFocus: LegFocus, customization?: PlanCustomization) =>
+    request<{ user: User }>('/api/me/plan', { method: 'PUT', body: JSON.stringify({ planId, legFocus, customization }) }),
   saveWorkout: (workout: WorkoutInput) =>
     request<{ workout: WorkoutRecord; user: User }>('/api/me/workouts', { method: 'POST', body: JSON.stringify(workout) }),
   workouts: () => request<{ workouts: WorkoutRecord[] }>('/api/me/workouts'),
-  selectExercise: (planDayId: string, groupId: string, optionKey: string, replaceKey?: string) =>
-    request<{ user: User }>('/api/me/exercise-selection', { method: 'PUT', body: JSON.stringify({ planDayId, groupId, optionKey, replaceKey }) }),
   savePlanCustomization: (customization: PlanCustomization) =>
     request<{ user: User }>('/api/me/plan-customization', { method: 'PUT', body: JSON.stringify({ customization }) }),
+  saveProfile: (displayName: string, avatar: string) =>
+    request<{ user: User }>('/api/me/profile', { method: 'PUT', body: JSON.stringify({ displayName, avatar }) }),
 }
 
 interface DatasetExercise {
@@ -130,9 +133,3 @@ export async function loadExercises(): Promise<Exercise[]> {
   })
 }
 
-export function matchExercise(exercises: Exercise[], query: string) {
-  const normalized = query.toLowerCase()
-  return exercises.find((item) => item.name.toLowerCase() === normalized)
-    ?? exercises.find((item) => item.name.toLowerCase().includes(normalized))
-    ?? exercises.find((item) => normalized.split(' ').every((word) => item.name.toLowerCase().includes(word)))
-}

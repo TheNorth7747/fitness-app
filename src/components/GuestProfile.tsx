@@ -7,6 +7,7 @@ export function GuestProfile({ notice, onAuthenticated }: { notice: string; onAu
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -19,7 +20,7 @@ export function GuestProfile({ notice, onAuthenticated }: { notice: string; onAu
     setLoading(true)
     try {
       const result = mode === 'register'
-        ? await api.register(username, password, confirmPassword)
+        ? await api.register(username, password, confirmPassword, displayName)
         : await api.login(username, password)
       onAuthenticated(result.user)
     } catch (reason) {
@@ -43,6 +44,7 @@ export function GuestProfile({ notice, onAuthenticated }: { notice: string; onAu
         <label>账号<input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" placeholder="4–20 位字母、数字或下划线" aria-describedby="guest-account-rules"/></label>
         <label>密码<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} placeholder="8–64 位密码"/></label>
         {mode === 'register' && <label>确认密码<input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" placeholder="再次输入密码"/></label>}
+        {mode === 'register' && <label>昵称（选填）<input value={displayName} onChange={(e) => setDisplayName(e.target.value.slice(0, 24))} placeholder="不填就显示账号名" maxLength={24} aria-label="昵称"/></label>}
         <small id="guest-account-rules">密码以安全哈希形式保存，不会存储明文。</small>
         {error && <p className="form-error" role="alert">{error}</p>}
         <button className="primary full" disabled={loading}>{loading ? '请稍候…' : mode === 'login' ? '登录并保存训练' : '创建账号'}</button>

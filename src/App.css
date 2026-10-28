@@ -463,7 +463,7 @@
 .plan-actions .secondary { min-height: 44px; justify-content: center; gap: 6px; font-size: 11px; }
 .plan-custom-hint { color: var(--muted); font-size: 10px; line-height: 1.6; margin-top: 9px; }
 
-.plan-editor { width: min(100%, 720px); min-height: 100svh; margin: auto; padding: 20px 20px 132px; }
+.plan-editor { width: min(100%, 720px); min-height: 100svh; margin: auto; padding: 20px 20px 164px; }
 .editor-header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; margin-bottom: 18px; }
 .editor-header .back-button { grid-column: 1; }
 .editor-header h1 { font-size: 27px; margin-top: 4px; }
@@ -503,7 +503,7 @@
 .editor-stepper { display: grid; grid-template-columns: 46px auto 46px; align-items: center; gap: 2px; }
 .editor-stepper button { height: 46px; background: var(--card-soft); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; font-size: 17px; line-height: 1; }
 .editor-stepper button:disabled { opacity: .38; }
-.editor-stepper strong { min-width: 46px; text-align: center; color: var(--accent); font-size: 18px; font-variant-numeric: tabular-nums; }
+.editor-stepper strong { min-width: 54px; text-align: center; color: var(--accent); font-size: 18px; font-variant-numeric: tabular-nums; }
 .editor-stepper small { color: var(--muted); font-size: 9px; font-weight: 500; }
 .editor-card-foot { color: var(--muted); font-size: 10px; margin-top: 11px; }
 .editor-card-foot strong { color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -516,7 +516,115 @@
 .editor-footer-actions .primary, .editor-footer-actions .secondary { min-height: 50px; justify-content: center; font-size: 13px; }
 
 @media (min-width: 760px) {
-  .plan-editor { padding: 34px 34px 150px; }
+  .plan-editor { padding: 34px 34px 180px; }
   .editor-header h1 { font-size: 34px; }
   .editor-groups { grid-template-columns: 1fr 1fr; }
+}
+
+/* Exercise picker (二级选择：肌群 → 器械 → 动作) */
+.picker-backdrop { align-items: flex-end; }
+.picker-sheet { width: min(100%, 620px); max-height: 92svh; overflow-y: auto; background: var(--card-soft); padding: 16px 18px calc(24px + env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; border: 1px solid var(--line); animation: slide-up .22s ease; }
+.picker-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.picker-title { text-align: center; }
+.picker-title h2 { font-size: 20px; margin-top: 3px; }
+.picker-search { margin-bottom: 14px; }
+.picker-block { margin-bottom: 18px; }
+.picker-block-title { color: var(--muted); font-size: 10px; margin-bottom: 9px; }
+.picker-muscles { grid-template-columns: 1fr 1fr; margin-bottom: 6px; }
+.picker-muscles .muscle-tile { justify-content: space-between; padding: 12px 13px; }
+.picker-list { display: grid; gap: 7px; }
+.picker-row { display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 11px; min-height: 60px; padding: 0 12px; text-align: left; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; }
+.picker-row:active { border-color: var(--accent); }
+.picker-row svg { color: var(--accent); }
+.picker-thumb { width: 48px; height: 48px; border-radius: 11px; }
+.picker-copy { display: grid; gap: 3px; }
+.picker-copy strong { font-size: 13px; }
+.picker-copy small { color: var(--muted); font-size: 9px; }
+
+/* 计划编辑器：已选动作行 */
+.editor-chosen { display: grid; gap: 7px; }
+.editor-chosen-row { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px 9px; padding: 10px 10px 9px; background: var(--card-soft); border: 1px solid var(--line); border-radius: 14px; }
+.editor-thumb { width: 44px; height: 44px; border-radius: 11px; }
+.editor-row-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 7px; }
+.editor-row-actions button { min-width: 66px; height: 34px; display: flex; align-items: center; justify-content: center; gap: 5px; background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 10px; font-size: 10px; }
+.editor-row-actions button:active { color: var(--accent); border-color: var(--accent); }
+.editor-add { width: 100%; min-height: 48px; margin-top: 9px; display: flex; align-items: center; justify-content: center; gap: 7px; background: transparent; color: var(--accent); border: 1px dashed var(--line-strong); border-radius: 13px; font-size: 12px; }
+.editor-add:disabled { color: var(--muted); }
+
+/* 头像与昵称 */
+.home-avatar { width: 40px; height: 40px; flex: none; padding: 0; border-radius: 50%; overflow: hidden; background: var(--card); border: 1px solid var(--line-strong); display: grid; place-items: center; color: var(--ink); font-weight: 800; font-size: 15px; }
+.home-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-button { position: relative; }
+.avatar-button img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-edit { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); border-radius: 50%; border: 2px solid var(--paper); }
+.profile-username { color: var(--muted); font-size: 10px; margin-top: 3px; }
+.profile-editor { width: min(100%, 520px); background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 18px 18px calc(20px + env(safe-area-inset-bottom)); animation: slide-up .22s ease; }
+.profile-editor h2 { font-size: 22px; margin-top: 4px; }
+.avatar-editor { display: grid; grid-template-columns: 92px 1fr; gap: 14px; align-items: center; margin: 16px 0; }
+.avatar-preview { width: 92px; height: 92px; border-radius: 50%; overflow: hidden; background: var(--card-soft); border: 1px solid var(--line-strong); display: grid; place-items: center; font-size: 32px; font-weight: 800; }
+.avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-actions { display: grid; gap: 8px; }
+.avatar-actions .secondary { min-height: 44px; justify-content: flex-start; gap: 7px; font-size: 12px; }
+.avatar-actions small, .profile-editor > small { color: var(--muted); font-size: 9px; line-height: 1.6; }
+.profile-editor .field-label { display: grid; gap: 7px; color: var(--muted); font-size: 10px; }
+.profile-editor-actions { grid-template-columns: auto 1fr; margin-top: 18px; }
+.profile-editor-actions .primary, .profile-editor-actions .secondary { min-height: 48px; justify-content: center; }
+
+@media (min-width: 760px) {
+  .picker-muscles { grid-template-columns: repeat(4, 1fr); }
+  .picker-sheet { border-radius: 24px; margin-bottom: 0; }
+}
+
+/* Exercise picker (二级选择：肌群 → 器械 → 动作) */
+.picker-backdrop { align-items: flex-end; }
+.picker-sheet { width: min(100%, 620px); max-height: 92svh; overflow-y: auto; background: var(--card-soft); padding: 16px 18px calc(24px + env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; border: 1px solid var(--line); animation: slide-up .22s ease; }
+.picker-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.picker-title { text-align: center; }
+.picker-title h2 { font-size: 20px; margin-top: 3px; }
+.picker-search { margin-bottom: 14px; }
+.picker-block { margin-bottom: 18px; }
+.picker-block-title { color: var(--muted); font-size: 10px; margin-bottom: 9px; }
+.picker-muscles { grid-template-columns: 1fr 1fr; margin-bottom: 6px; }
+.picker-muscles .muscle-tile { justify-content: space-between; padding: 12px 13px; }
+.picker-list { display: grid; gap: 7px; }
+.picker-row { display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 11px; min-height: 60px; padding: 0 12px; text-align: left; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; }
+.picker-row:active { border-color: var(--accent); }
+.picker-row svg { color: var(--accent); }
+.picker-thumb { width: 48px; height: 48px; border-radius: 11px; }
+.picker-copy { display: grid; gap: 3px; }
+.picker-copy strong { font-size: 13px; }
+.picker-copy small { color: var(--muted); font-size: 9px; }
+
+/* 计划编辑器：已选动作行 */
+.editor-chosen { display: grid; gap: 7px; }
+.editor-chosen-row { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px 9px; padding: 10px 10px 9px; background: var(--card-soft); border: 1px solid var(--line); border-radius: 14px; }
+.editor-thumb { width: 44px; height: 44px; border-radius: 11px; }
+.editor-row-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 7px; }
+.editor-row-actions button { min-width: 66px; height: 34px; display: flex; align-items: center; justify-content: center; gap: 5px; background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 10px; font-size: 10px; }
+.editor-row-actions button:active { color: var(--accent); border-color: var(--accent); }
+.editor-add { width: 100%; min-height: 48px; margin-top: 9px; display: flex; align-items: center; justify-content: center; gap: 7px; background: transparent; color: var(--accent); border: 1px dashed var(--line-strong); border-radius: 13px; font-size: 12px; }
+.editor-add:disabled { color: var(--muted); }
+
+/* 头像与昵称 */
+.home-avatar { width: 40px; height: 40px; flex: none; padding: 0; border-radius: 50%; overflow: hidden; background: var(--card); border: 1px solid var(--line-strong); display: grid; place-items: center; color: var(--ink); font-weight: 800; font-size: 15px; }
+.home-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-button { position: relative; }
+.avatar-button img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-edit { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); border-radius: 50%; border: 2px solid var(--paper); }
+.profile-username { color: var(--muted); font-size: 10px; margin-top: 3px; }
+.profile-editor { width: min(100%, 520px); background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 18px 18px calc(20px + env(safe-area-inset-bottom)); animation: slide-up .22s ease; }
+.profile-editor h2 { font-size: 22px; margin-top: 4px; }
+.avatar-editor { display: grid; grid-template-columns: 92px 1fr; gap: 14px; align-items: center; margin: 16px 0; }
+.avatar-preview { width: 92px; height: 92px; border-radius: 50%; overflow: hidden; background: var(--card-soft); border: 1px solid var(--line-strong); display: grid; place-items: center; font-size: 32px; font-weight: 800; }
+.avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-actions { display: grid; gap: 8px; }
+.avatar-actions .secondary { min-height: 44px; justify-content: flex-start; gap: 7px; font-size: 12px; }
+.avatar-actions small, .profile-editor > small { color: var(--muted); font-size: 9px; line-height: 1.6; }
+.profile-editor .field-label { display: grid; gap: 7px; color: var(--muted); font-size: 10px; }
+.profile-editor-actions { grid-template-columns: auto 1fr; margin-top: 18px; }
+.profile-editor-actions .primary, .profile-editor-actions .secondary { min-height: 48px; justify-content: center; }
+
+@media (min-width: 760px) {
+  .picker-muscles { grid-template-columns: repeat(4, 1fr); }
+  .picker-sheet { border-radius: 24px; margin-bottom: 0; }
 }

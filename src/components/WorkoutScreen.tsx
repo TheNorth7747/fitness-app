@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getPlan, resolveDayPlan, type PlanDay, type WorkoutGroup } from '../../shared/plans'
+import { getPlan, resolveDayPlan, type PlanDay } from '../../shared/plans'
 import type { Exercise, User, WorkoutRecord, WorkoutSetInput } from '../../shared/api'
 import { recommendNextSet, suggestedSetValues, buildWorkoutSummary, type Recommendation, type WorkoutSummary } from '../../shared/progression'
-import { api, matchExercise } from '../api'
+import { api, findExercise } from '../api'
 import type { DraftSetValue, WorkoutDraft } from '../workoutDraft'
 import { BackButton } from './BackButton'
 import { ExerciseImage } from './ExerciseImage'
 import { Icon } from './Icon'
 
-const incrementFor = (group: WorkoutGroup) => /股四头肌|臀大肌|腘绳肌|后侧链/.test(group.name) ? 5 : 2.5
+const incrementFor = (groupName: string) => /股四头肌|臀大肌|腘绳肌|后侧链|腿/.test(groupName) ? 5 : 2.5
 const nowIso = () => new Date().toISOString()
 
 export function WorkoutScreen({ user, day, startedAt, draft, exercises, offline, onClose, onDraftChange, onComplete }: {
@@ -23,10 +23,10 @@ export function WorkoutScreen({ user, day, startedAt, draft, exercises, offline,
   onComplete: (user: User, summary: WorkoutSummary) => void
 }) {
   const plan = getPlan(user.planId ?? 'gym-three', user.legFocus)
-  const items = useMemo(() => resolveDayPlan(day, user.planCustomization, user.exerciseSelections)
-    .map((item) => ({ ...item, exercise: matchExercise(exercises, item.option.query) })), [day, exercises, user.exerciseSelections, user.planCustomization])
+  const items = useMemo(() => resolveDayPlan(day, user.planCustomization, exercises, user.exerciseSelections)
+    .map((item) => ({ ...item, exercise: findExercise(exercises, item.exerciseId) })), [day, exercises, user.exerciseSelections, user.planCustomization])
   const total = items.reduce((sum, item) => sum + item.sets, 0)
-  const validSetKeys = useMemo(() => new Set(items.flatMap((item) => Array.from({ length: item.sets }, (_, index) => `${item.option.key}-${index}`))), [items])
+  const validSetKeys = useMemo(() => new Set(items.flatMap((item) => Array.from({ length: item.sets }, (_, index) => `${item.key}-${index}`))), [items])
   const [values, setValues] = useState<Record<string, DraftSetValue>>(() => draft?.values ?? {})
   const [completed, setCompleted] = useState<Set<string>>(() => new Set((draft?.completed ?? []).filter((key) => validSetKeys.has(key))))
   const [history, setHistory] = useState<WorkoutRecord[]>([])
@@ -37,8 +37,8 @@ export function WorkoutScreen({ user, day, startedAt, draft, exercises, offline,
   const [error, setError] = useState('')
 
   const recommendations = useMemo(() => new Map(items.map((item) => [
-    `${item.option.key}-group`,
-    recommendNextSet(history, item.option.key, item.group.repRange, incrementFor(item.group)),
+    `${item.key}-group`,
+    recommendNextSet(history, item.key, item.repRange, incrementFor(item.groupName)),
   ])), [history, items])
 
   useEffect(() => {
@@ -51,9 +51,9 @@ export function WorkoutScreen({ user, day, startedAt, draft, exercises, offline,
           if (Object.keys(current).length) return current
           const seeded: Record<string, DraftSetValue> = {}
           for (const item of items) {
-            const recommendation = recommendNextSet(result.workouts, item.option.key, item.group.repRange, incrementFor(item.group))
+            const recommendation = recommendNextSet(result.workouts, item.key, item.repRange, incrementFor(item.groupName))
             suggestedSetValues(recommendation, item.sets).forEach((value, index) => {
-              seeded[`${item.option.key}-${index}`] = value
+              seeded[`${item.key}-${index}`] = value
             })
           }
           return seeded
@@ -64,7 +64,7 @@ export function WorkoutScreen({ user, day, startedAt, draft, exercises, offline,
   }, [draft, items])
 
   function recommendationFor(item: typeof items[number]): Recommendation {
-    return recommendations.get(`${item.option.key}-group`) ?? recommendNextSet([], item.option.key, item.group.repRange)
+    return recommendations.get(`${item.key}-group`) ?? recommendNextSet([], item.key, item.repRange)
   }
 
   function valueFor(key: string, fallback: DraftSetValue): DraftSetValue {
@@ -110,9 +110,9 @@ export function WorkoutScreen({ user, day, startedAt, draft, exercises, offline,
   async function finish() {
     setSaving(true); setError('')
     const sets: WorkoutSetInput[] = items.flatMap((item) => Array.from({ length: item.sets }, (_, index) => {
-      const key = `${item.option.key}-${index}`
+      const key = `${item.key}-${index}`
       const value = values[key] ?? { reps: 10, weightKg: 0 }
-      return { exerciseKey: item.option.key, exerciseId: item.exercise?.id ?? item.option.key, exerciseName: item.option.nameZh, setNumber: index + 1, reps: value.reps, weightKg: value.weightKg }
+      return { exerciseKey: item.key, exerciseId: item.exercise?.id ?? item.key, exerciseName: item.name, setNumber: index + 1, reps: value.reps, weightKg: value.weightKg }
     }))
     try {
       const result = await api.saveWorkout({ planDayId: day.id, startedAt, completedAt: nowIso(), sets })
@@ -135,17 +135,17 @@ export function WorkoutScreen({ user, day, startedAt, draft, exercises, offline,
       {items.map((item) => {
         const recommendation = recommendationFor(item)
         const lastBest = recommendation.previousSets.reduce((best, set) => set.reps > best.reps ? set : best, recommendation.previousSets[0])
-        return <section className="exercise-session" key={item.option.key}>
-          <div className="session-title"><ExerciseImage src={item.exercise?.gifUrl} alt={`${item.option.nameZh}动作演示`} fallback={item.option.nameZh}/><div><h2>{item.option.nameZh}</h2><p>{item.group.repRange} 次 · 休息 {Math.round(item.group.restSeconds / 60)} 分钟</p></div><strong>{item.sets} 组</strong></div>
+        return <section className="exercise-session" key={item.key}>
+          <div className="session-title"><ExerciseImage src={item.exercise?.gifUrl} alt={`${item.name}动作演示`} fallback={item.name}/><div><h2>{item.name}</h2><p>{item.repRange} 次 · 休息 {Math.round(item.restSeconds / 60)} 分钟</p></div><strong>{item.sets} 组</strong></div>
           <div className="recommendation-line"><Icon name="spark" size={15}/><span>{historyUnavailable ? '暂时读不到历史成绩，先按自己熟悉的重量记录。' : recommendation.reason}</span></div>
           {lastBest && <p className="last-performance">上次最佳：{lastBest.weightKg > 0 ? `${lastBest.weightKg} kg × ` : ''}{lastBest.reps} 次</p>}
           <div className="set-labels"><span>组次</span><span>重量 kg</span><span>次数</span><span>完成</span></div>
           {Array.from({ length: item.sets }, (_, index) => {
-            const key = `${item.option.key}-${index}`
+            const key = `${item.key}-${index}`
             const done = completed.has(key)
             const suggested = suggestedSetValues(recommendation, item.sets)[index] ?? { reps: 10, weightKg: 0 }
             const value = valueFor(key, suggested)
-            return <div className={`set-row ${done ? 'done' : ''}`} key={key}><span>{index + 1}</span><input type="number" min="0" step="0.5" aria-label={`第 ${index + 1} 组重量`} value={value.weightKg} disabled={done} onChange={(e) => update(key, 'weightKg', Number(e.target.value), suggested)}/><input type="number" min="1" max="100" aria-label={`第 ${index + 1} 组次数`} value={value.reps} disabled={done} onChange={(e) => update(key, 'reps', Number(e.target.value), suggested)}/><button className="set-check" aria-label={`完成第 ${index + 1} 组`} disabled={done} onClick={() => completeSet(key, item.group.restSeconds, value)}><Icon name="check"/></button></div>
+            return <div className={`set-row ${done ? 'done' : ''}`} key={key}><span>{index + 1}</span><input type="number" min="0" step="0.5" aria-label={`第 ${index + 1} 组重量`} value={value.weightKg} disabled={done} onChange={(e) => update(key, 'weightKg', Number(e.target.value), suggested)}/><input type="number" min="1" max="100" aria-label={`第 ${index + 1} 组次数`} value={value.reps} disabled={done} onChange={(e) => update(key, 'reps', Number(e.target.value), suggested)}/><button className="set-check" aria-label={`完成第 ${index + 1} 组`} disabled={done} onClick={() => completeSet(key, item.restSeconds, value)}><Icon name="check"/></button></div>
           })}
         </section>
       })}
