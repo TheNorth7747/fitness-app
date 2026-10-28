@@ -7,10 +7,12 @@ CREATE TABLE IF NOT EXISTS users (
   leg_focus TEXT NOT NULL DEFAULT 'quads' CHECK (leg_focus IN ('quads', 'glutes')),
   cycle_position INTEGER NOT NULL DEFAULT 0 CHECK (cycle_position >= 0),
   exercise_selections JSONB NOT NULL DEFAULT '{}'::jsonb,
+  plan_customization JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS exercise_selections JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_customization JSONB NOT NULL DEFAULT '{}'::jsonb;
 
 CREATE TABLE IF NOT EXISTS sessions (
   token_hash CHAR(64) PRIMARY KEY,

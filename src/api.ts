@@ -1,5 +1,5 @@
 import type { EquipmentGroup, Exercise, MuscleGroup, User, WorkoutInput, WorkoutRecord } from '../shared/api'
-import type { LegFocus } from '../shared/plans'
+import type { LegFocus, PlanCustomization } from '../shared/plans'
 
 const request = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
   const response = await fetch(path, {
@@ -24,8 +24,10 @@ export const api = {
   saveWorkout: (workout: WorkoutInput) =>
     request<{ workout: WorkoutRecord; user: User }>('/api/me/workouts', { method: 'POST', body: JSON.stringify(workout) }),
   workouts: () => request<{ workouts: WorkoutRecord[] }>('/api/me/workouts'),
-  selectExercise: (planDayId: string, groupId: string, optionKey: string) =>
-    request<{ user: User }>('/api/me/exercise-selection', { method: 'PUT', body: JSON.stringify({ planDayId, groupId, optionKey }) }),
+  selectExercise: (planDayId: string, groupId: string, optionKey: string, replaceKey?: string) =>
+    request<{ user: User }>('/api/me/exercise-selection', { method: 'PUT', body: JSON.stringify({ planDayId, groupId, optionKey, replaceKey }) }),
+  savePlanCustomization: (customization: PlanCustomization) =>
+    request<{ user: User }>('/api/me/plan-customization', { method: 'PUT', body: JSON.stringify({ customization }) }),
 }
 
 interface DatasetExercise {

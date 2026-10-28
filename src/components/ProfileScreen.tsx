@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { User, WorkoutRecord } from '../../shared/api'
 import { buildExerciseTrends, type ExerciseTrend } from '../../shared/progression'
-import { getPlan } from '../../shared/plans'
+import { getPlan, RECOMMENDED_SETS_MAX, RECOMMENDED_SETS_MIN } from '../../shared/plans'
 import { api } from '../api'
 import { BackButton } from './BackButton'
 import { Icon } from './Icon'
@@ -39,7 +39,7 @@ function TrendChart({ trend, large = false }: { trend: ExerciseTrend; large?: bo
   </svg>
 }
 
-export function ProfileScreen({ user, onChangePlan, onLogout }: { user: User; onChangePlan: () => void; onLogout: () => void }) {
+export function ProfileScreen({ user, onChangePlan, onCustomize, onLogout }: { user: User; onChangePlan: () => void; onCustomize: () => void; onLogout: () => void }) {
   const [workouts, setWorkouts] = useState<WorkoutRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -109,7 +109,13 @@ export function ProfileScreen({ user, onChangePlan, onLogout }: { user: User; on
     <header className="profile-header"><div className="avatar">{user.username.slice(0, 1).toUpperCase()}</div><div><p className="eyebrow">我的训练</p><h1>{user.username}</h1></div></header>
     <section className="stats-grid"><div><strong>{workouts.length}</strong><span>累计训练</span></div><div><strong>{workouts.reduce((sum, item) => sum + item.sets.length, 0)}</strong><span>完成组数</span></div><div><strong>{Math.round(volume)}</strong><span>累计容量 kg</span></div></section>
 
-    <section className="section-block"><div className="section-title"><h2>当前计划</h2></div><button className="current-plan" onClick={onChangePlan}><span><small>{plan.location === 'gym' ? '健身房' : '居家'} · {plan.days.length} 天循环</small><strong>{plan.name}</strong><span>下一站：{plan.days[user.cyclePosition % plan.days.length].name}</span></span><Icon name="arrow"/></button></section>
+    <section className="section-block"><div className="section-title"><h2>当前计划</h2></div><button className="current-plan" onClick={onChangePlan}><span><small>{plan.location === 'gym' ? '健身房' : '居家'} · {plan.days.length} 天循环</small><strong>{plan.name}</strong><span>下一站：{plan.days[user.cyclePosition % plan.days.length].name}</span></span><Icon name="arrow"/></button>
+      <div className="plan-actions">
+        <button className="secondary" onClick={onCustomize}><Icon name="spark" size={16}/>自定义动作与组数</button>
+        <button className="secondary" onClick={onChangePlan}>更换计划</button>
+      </div>
+      <p className="plan-custom-hint">{Object.keys(user.planCustomization ?? {}).length ? '已保存自定义方案，训练时按你的设置执行。' : `推荐每个动作 ${RECOMMENDED_SETS_MIN}–${RECOMMENDED_SETS_MAX} 组，可在自定义里调整。`}</p>
+    </section>
 
     {loading && <p className="history-hint">正在整理训练历史…</p>}
     {!loading && trends.length > 0 && <section className="section-block progress-section"><div className="section-title"><div><p className="eyebrow">最近 8 次</p><h2>力量进展</h2></div><span>{trends.length} 个动作</span></div>
@@ -141,7 +147,7 @@ export function ProfileScreen({ user, onChangePlan, onLogout }: { user: User; on
     </section>
 
     <button className="logout-button" onClick={onLogout}><Icon name="logout"/>退出登录</button>
-    <p className="attribution">Fitday v1.2.1<br/>动作数据：hasaneyldrm/exercises-dataset<br/>媒体：© Gym visual · 计划参考：B站好人松松</p>
+    <p className="attribution">Fitday v1.4.0<br/>动作数据：hasaneyldrm/exercises-dataset<br/>媒体：© Gym visual · 计划参考：B站好人松松</p>
 
     {selectedTrend && <div className="modal-backdrop" onClick={() => setSelectedTrend(null)}><article className="exercise-modal trend-detail" onClick={(event) => event.stopPropagation()}>
       <div className="sheet-topbar"><BackButton label="返回我的" onClick={() => setSelectedTrend(null)}/><button className="icon-button" onClick={() => setSelectedTrend(null)} aria-label="关闭趋势详情"><Icon name="close"/></button></div>

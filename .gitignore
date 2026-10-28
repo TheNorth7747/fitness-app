@@ -13,10 +13,6 @@ dist-server
 .validation
 .env
 *.local
-backups
-
-# 动作 GIF 由 scripts/fetch-media.py 拉取，不入库（体积与版权）
-public/media
 
 # Editor directories and files
 .vscode/*
@@ -28,3 +24,6 @@ public/media
 *.njsproj
 *.sln
 *.sw?
+
+# 动作 GIF 由 scripts/fetch-media.py 拉取，不入库（体积与版权）
+public/media

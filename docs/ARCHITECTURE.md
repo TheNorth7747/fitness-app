@@ -54,6 +54,22 @@ Caddy → Nginx
 - nginx 对 `/data/` 设 `expires -1`，浏览器每次校验
 - 新 worker 接管时页面自动刷新一次，避免新旧资源混用
 
+### 计划自定义
+
+- `shared/plans.ts`：`recommendedCount` 按每动作 4–5 组推导推荐动作数，`resolveGroupPlan` / `resolveDayPlan` 合并用户自定义，非法输入一律回退推荐值
+- `users.plan_customization` JSONB：`planDayId -> groupId -> { optionKeys, sets }`
+- `PUT /api/me/plan-customization`：只接受属于当前计划训练日的动作，组数夹紧到 1–8，未知动作剔除
+- `PUT /api/me/exercise-selection`：首页换动作时同步写入自定义，并清理被替换动作的组数记录
+- 切换计划时清空自定义
+
+### 计划自定义
+
+- `shared/plans.ts`：`recommendedCount` 按每动作 4–5 组推导推荐动作数，`resolveGroupPlan` / `resolveDayPlan` 合并用户自定义，非法输入一律回退推荐值
+- `users.plan_customization` JSONB：`planDayId -> groupId -> { optionKeys, sets }`
+- `PUT /api/me/plan-customization`：只接受属于当前计划训练日的动作，组数夹紧到 1–8，未知动作剔除
+- `PUT /api/me/exercise-selection`：首页换动作时同步写入自定义，并清理被替换动作的组数记录
+- 切换计划时清空自定义
+
 ## 后端
 
 - `server/src/app.ts`：全部路由、会话校验、输入校验和权限过滤。

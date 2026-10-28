@@ -4,7 +4,7 @@ import cookie from '@fastify/cookie'
 import rateLimit from '@fastify/rate-limit'
 import { z } from 'zod'
 import type pg from 'pg'
-import { getPlan, getPlans, type LegFocus } from '../../shared/plans.js'
+import { clampSets, dayOptionKeys, getPlan, getPlans, RECOMMENDED_SETS_MIN, recommendedGroupPlan, SETS_MAX, SETS_MIN, type LegFocus, type PlanCustomization } from '../../shared/plans.js'
 import type { User, WorkoutRecord } from '../../shared/api.js'
 import { hashPassword, hashToken, newSessionToken, verifyPassword } from './auth.js'
 
@@ -18,9 +18,10 @@ interface UserRow {
   leg_focus: LegFocus
   cycle_position: number
   exercise_selections: Record<string, string>
+  plan_customization: PlanCustomization
 }
 
-const toUser = (row: UserRow): User => ({ id: row.id, username: row.username, planId: row.plan_id, legFocus: row.leg_focus, cyclePosition: row.cycle_position, exerciseSelections: row.exercise_selections ?? {} })
+const toUser = (row: UserRow): User => ({ id: row.id, username: row.username, planId: row.plan_id, legFocus: row.leg_focus, cyclePosition: row.cycle_position, exerciseSelections: row.exercise_selections ?? {}, planCustomization: row.plan_customization ?? {} })
 const setSessionCookie = (reply: FastifyReply, token: string) => {
   reply.setCookie(COOKIE_NAME, token, {
     httpOnly: true,
@@ -65,7 +66,7 @@ export async function buildApp(pool: pg.Pool): Promise<FastifyInstance> {
     const token = request.cookies[COOKIE_NAME]
     if (!token) return null
     const result = await pool.query<UserRow>(
-      `SELECT u.id, u.username, u.plan_id, u.leg_focus, u.cycle_position, u.exercise_selections
+      `SELECT u.id, u.username, u.plan_id, u.leg_focus, u.cycle_position, u.exercise_selections, u.plan_customization
        FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.token_hash = $1 AND s.expires_at > NOW()`,
       [hashToken(token)],
@@ -105,7 +106,7 @@ export async function buildApp(pool: pg.Pool): Promise<FastifyInstance> {
       const passwordHash = await hashPassword(password)
       const inserted = await client.query<UserRow>(
         `INSERT INTO users (id, username, username_normalized, password_hash)
-         VALUES ($1, $2, $3, $4) RETURNING id, username, plan_id, leg_focus, cycle_position, exercise_selections`,
+         VALUES ($1, $2, $3, $4) RETURNING id, username, plan_id, leg_focus, cycle_position, exercise_selections, plan_customization`,
         [id, username, username.toLowerCase(), passwordHash],
       )
       const token = newSessionToken()
@@ -126,8 +127,8 @@ export async function buildApp(pool: pg.Pool): Promise<FastifyInstance> {
   app.post('/api/auth/login', { config: { rateLimit: { max: 20, timeWindow: '10 minutes' } } }, async (request, reply) => {
     const parsed = loginSchema.safeParse(request.body)
     if (!parsed.success) return reply.code(400).send({ message: '请输入正确的账号和密码' })
-    const result = await pool.query<{ id: string; username: string; password_hash: string; plan_id: string | null; leg_focus: LegFocus; cycle_position: number; exercise_selections: Record<string, string> }>(
-      'SELECT id, username, password_hash, plan_id, leg_focus, cycle_position, exercise_selections FROM users WHERE username_normalized = $1',
+    const result = await pool.query<{ id: string; username: string; password_hash: string; plan_id: string | null; leg_focus: LegFocus; cycle_position: number; exercise_selections: Record<string, string>; plan_customization: PlanCustomization }>(
+      'SELECT id, username, password_hash, plan_id, leg_focus, cycle_position, exercise_selections, plan_customization FROM users WHERE username_normalized = $1',
       [parsed.data.username.toLowerCase()],
     )
     const row = result.rows[0]
@@ -156,8 +157,8 @@ export async function buildApp(pool: pg.Pool): Promise<FastifyInstance> {
     const plan = getPlans(parsed.data.legFocus).find((item) => item.id === parsed.data.planId)
     if (!plan) return reply.code(400).send({ message: '训练计划不存在' })
     const updated = await pool.query<UserRow>(
-      `UPDATE users SET plan_id = $1, leg_focus = $2, cycle_position = 0, exercise_selections = '{}'::jsonb WHERE id = $3
-       RETURNING id, username, plan_id, leg_focus, cycle_position, exercise_selections`,
+      `UPDATE users SET plan_id = $1, leg_focus = $2, cycle_position = 0, exercise_selections = '{}'::jsonb, plan_customization = '{}'::jsonb WHERE id = $3
+       RETURNING id, username, plan_id, leg_focus, cycle_position, exercise_selections, plan_customization`,
       [plan.id, parsed.data.legFocus, user.id],
     )
     return { user: toUser(updated.rows[0]) }
@@ -170,6 +171,7 @@ export async function buildApp(pool: pg.Pool): Promise<FastifyInstance> {
       planDayId: z.string().min(1).max(80),
       groupId: z.string().min(1).max(80),
       optionKey: z.string().min(1).max(80),
+      replaceKey: z.string().min(1).max(80).optional(),
     }).safeParse(request.body)
     if (!parsed.success) return reply.code(400).send({ message: '动作选择数据不正确' })
     if (!user.plan_id) return reply.code(400).send({ message: '请先选择训练计划' })
@@ -179,10 +181,71 @@ export async function buildApp(pool: pg.Pool): Promise<FastifyInstance> {
     if (!day || !group || !group.options.some((option) => option.key === parsed.data.optionKey)) {
       return reply.code(400).send({ message: '该动作不属于当前训练日' })
     }
+    const recommended = recommendedGroupPlan(group, user.exercise_selections)
+    const existing = user.plan_customization?.[day.id]?.[group.id]
+    const base = existing
+      ? existing.optionKeys.map((key) => ({ key, sets: existing.sets?.[key] ?? 0 }))
+      : recommended.map((item) => ({ key: item.option.key, sets: item.sets }))
+    const baseKeys = base.map((item) => item.key)
+    const replaceIndex = parsed.data.replaceKey ? baseKeys.indexOf(parsed.data.replaceKey) : -1
+    const nextKeys = [...baseKeys]
+    if (replaceIndex >= 0) nextKeys[replaceIndex] = parsed.data.optionKey
+    else nextKeys.unshift(parsed.data.optionKey)
+    const deduped = Array.from(new Set(nextKeys))
+    const nextSets: Record<string, number> = {}
+    for (const item of base) nextSets[item.key] = item.sets
+    if (!nextSets[parsed.data.optionKey]) {
+      nextSets[parsed.data.optionKey] = recommended.find((item) => item.option.key === parsed.data.optionKey)?.sets ?? RECOMMENDED_SETS_MIN
+    }
+    const cleanedSets: Record<string, number> = {}
+    for (const key of deduped) cleanedSets[key] = clampSets(nextSets[key] ?? RECOMMENDED_SETS_MIN)
+    const nextCustomization: PlanCustomization = {
+      ...(user.plan_customization ?? {}),
+      [day.id]: {
+        ...(user.plan_customization?.[day.id] ?? {}),
+        [group.id]: { optionKeys: deduped, sets: cleanedSets },
+      },
+    }
     const updated = await pool.query<UserRow>(
-      `UPDATE users SET exercise_selections = exercise_selections || $1::jsonb WHERE id = $2
-       RETURNING id, username, plan_id, leg_focus, cycle_position, exercise_selections`,
-      [JSON.stringify({ [group.id]: parsed.data.optionKey }), user.id],
+      `UPDATE users SET exercise_selections = exercise_selections || $1::jsonb, plan_customization = $2::jsonb WHERE id = $3
+       RETURNING id, username, plan_id, leg_focus, cycle_position, exercise_selections, plan_customization`,
+      [JSON.stringify({ [group.id]: parsed.data.optionKey }), JSON.stringify(nextCustomization), user.id],
+    )
+    return { user: toUser(updated.rows[0]) }
+  })
+
+  app.put('/api/me/plan-customization', async (request, reply) => {
+    const user = await requireUser(request, reply)
+    if (!user) return
+    if (!user.plan_id) return reply.code(400).send({ message: '请先选择训练计划' })
+    const parsed = z.object({
+      customization: z.record(z.string(), z.record(z.string(), z.object({
+        optionKeys: z.array(z.string().min(1).max(80)).min(1).max(6),
+        sets: z.record(z.string(), z.number().int().min(0).max(99)),
+      }))),
+    }).safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ message: `自定义内容格式不正确，组数需在 ${SETS_MIN}–${SETS_MAX} 之间` })
+
+    const plan = getPlan(user.plan_id, user.leg_focus)
+    const clean: PlanCustomization = {}
+    for (const [dayId, groups] of Object.entries(parsed.data.customization)) {
+      const day = plan.days.find((item) => item.id === dayId)
+      if (!day) continue
+      for (const [groupId, custom] of Object.entries(groups)) {
+        const group = day.groups.find((item) => item.id === groupId)
+        if (!group) continue
+        const allowed = new Set(group.options.map((option) => option.key))
+        const keys = Array.from(new Set(custom.optionKeys)).filter((key) => allowed.has(key))
+        if (!keys.length) continue
+        const sets: Record<string, number> = {}
+        for (const key of keys) sets[key] = clampSets(custom.sets[key] ?? RECOMMENDED_SETS_MIN)
+        clean[dayId] = { ...(clean[dayId] ?? {}), [groupId]: { optionKeys: keys, sets } }
+      }
+    }
+    const updated = await pool.query<UserRow>(
+      `UPDATE users SET plan_customization = $1::jsonb WHERE id = $2
+       RETURNING id, username, plan_id, leg_focus, cycle_position, exercise_selections, plan_customization`,
+      [JSON.stringify(clean), user.id],
     )
     return { user: toUser(updated.rows[0]) }
   })
@@ -227,6 +290,10 @@ export async function buildApp(pool: pg.Pool): Promise<FastifyInstance> {
     const plan = getPlan(user.plan_id, user.leg_focus)
     const day = plan.days.find((item) => item.id === parsed.data.planDayId)
     if (!day) return reply.code(400).send({ message: '训练日与当前计划不匹配' })
+    const allowedKeys = dayOptionKeys(day)
+    if (parsed.data.sets.some((set) => !allowedKeys.has(set.exerciseKey))) {
+      return reply.code(400).send({ message: '训练动作与当前计划不匹配' })
+    }
     if (new Date(parsed.data.completedAt).getTime() < new Date(parsed.data.startedAt).getTime()) return reply.code(400).send({ message: '训练时间不正确' })
 
     const client = await pool.connect()
@@ -247,7 +314,7 @@ export async function buildApp(pool: pg.Pool): Promise<FastifyInstance> {
       const nextPosition = (user.cycle_position + 1) % plan.days.length
       const updated = await client.query<UserRow>(
         `UPDATE users SET cycle_position = $1 WHERE id = $2
-         RETURNING id, username, plan_id, leg_focus, cycle_position, exercise_selections`,
+         RETURNING id, username, plan_id, leg_focus, cycle_position, exercise_selections, plan_customization`,
         [nextPosition, user.id],
       )
       await client.query('COMMIT')

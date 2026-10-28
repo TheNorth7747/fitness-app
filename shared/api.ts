@@ -1,4 +1,4 @@
-import type { LegFocus } from './plans.js'
+import type { LegFocus, PlanCustomization } from './plans.js'
 
 export interface User {
   id: string
@@ -7,6 +7,7 @@ export interface User {
   legFocus: LegFocus
   cyclePosition: number
   exerciseSelections: Record<string, string>
+  planCustomization: PlanCustomization
 }
 
 export const MUSCLE_GROUPS = ['胸', '背', '肩', '手臂', '腿', '臀', '核心', '有氧', '其他'] as const

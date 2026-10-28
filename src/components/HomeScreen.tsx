@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { getPlan, distributeSets, selectedOptions, type PlanDay, type WorkoutGroup } from '../../shared/plans'
+import { dayPlanTotals, getPlan, resolveDayPlan, type PlanDay, type WorkoutGroup } from '../../shared/plans'
 import type { Exercise, User } from '../../shared/api'
 import { matchExercise } from '../api'
 import type { WorkoutDraft } from '../workoutDraft'
@@ -9,32 +9,39 @@ import { Icon } from './Icon'
 
 const today = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())
 
-export function HomeScreen({ user, exercises, guest, draft, onStart, onChangePlan, onChangeExercise, onRequireAuth, onDiscardDraft }: {
+export function HomeScreen({ user, exercises, guest, draft, onStart, onChangePlan, onChangeExercise, onCustomize, onRequireAuth, onDiscardDraft }: {
   user: User
   exercises: Exercise[]
   guest: boolean
   draft: WorkoutDraft | null
   onStart: (day: PlanDay) => void
   onChangePlan: () => void
-  onChangeExercise: (planDayId: string, groupId: string, optionKey: string) => Promise<void>
+  onChangeExercise: (planDayId: string, groupId: string, optionKey: string, replaceKey?: string) => Promise<void>
+  onCustomize: (planDayId: string) => void
   onRequireAuth: () => void
   onDiscardDraft: () => void
 }) {
-  const [replacing, setReplacing] = useState<WorkoutGroup | null>(null)
+  const [replacing, setReplacing] = useState<{ group: WorkoutGroup; current: string } | null>(null)
   const [saving, setSaving] = useState(false)
   const [selectionError, setSelectionError] = useState('')
   const plan = getPlan(user.planId ?? 'gym-three', user.legFocus)
   const nextDay = plan.days[user.cyclePosition % plan.days.length]
   const draftDay = draft && draft.planId === plan.id ? plan.days.find((item) => item.id === draft.planDayId) : undefined
   const day = draftDay ?? nextDay
-  const totalSets = day.groups.reduce((sum, item) => sum + item.totalSets, 0)
-  const totalExercises = day.groups.reduce((sum, item) => sum + item.selectMin, 0)
+  const planned = resolveDayPlan(day, user.planCustomization, user.exerciseSelections)
+  const totals = dayPlanTotals(day, user.planCustomization, user.exerciseSelections)
+  const customized = Boolean(user.planCustomization?.[day.id] && Object.keys(user.planCustomization[day.id]).length)
 
-  async function choose(group: WorkoutGroup, optionKey: string) {
+  async function choose(group: WorkoutGroup, optionKey: string, currentKey: string) {
     setSaving(true); setSelectionError('')
-    try { await onChangeExercise(day.id, group.id, optionKey); setReplacing(null) }
+    try { await onChangeExercise(day.id, group.id, optionKey, currentKey); setReplacing(null) }
     catch (reason) { setSelectionError(reason instanceof Error ? reason.message : '更换动作失败') }
     finally { setSaving(false) }
+  }
+
+  function customize() {
+    if (guest) return onRequireAuth()
+    onCustomize(day.id)
   }
 
   return <div className="page home-page">
@@ -44,21 +51,22 @@ export function HomeScreen({ user, exercises, guest, draft, onStart, onChangePla
     <section className="today-hero">
       <div className="hero-top"><span className="dark-tag">今日训练 · DAY {plan.days.indexOf(day) + 1}</span><span>{plan.shortName}</span></div>
       <div><p>{day.subtitle}</p><h2>{day.name}</h2></div>
-      <div className="hero-metrics"><span><strong>{totalExercises}</strong> 个动作</span><span><strong>{totalSets}</strong> 总组数</span><span><strong>60–90</strong> 分钟</span></div>
+      <div className="hero-metrics"><span><strong>{totals.exercises}</strong> 个动作</span><span><strong>{totals.sets}</strong> 总组数</span><span><strong>4–5</strong> 组/动作</span></div>
       <button className="accent-button" onClick={guest ? onRequireAuth : () => onStart(day)}>{guest ? '登录后开始训练' : draft ? '继续未完成训练' : '开始今日训练'} <Icon name="arrow"/></button>
     </section>
-    <section className="section-block"><div className="section-title"><div><p className="eyebrow">训练安排</p><h2>今天做什么</h2></div><span>{day.groups.length} 个动作组</span></div>
-      <div className="workout-list">{day.groups.flatMap((item) => {
-        const options = selectedOptions(item, user.exerciseSelections)
-        const counts = distributeSets(item.totalSets, options.length)
-        return options.map((option, index) => {
-          const exercise = matchExercise(exercises, option.query)
-          return <article className="workout-row" key={`${item.id}-${option.key}`}>
-            <ExerciseImage className="exercise-thumb" src={exercise?.gifUrl} alt={`${option.nameZh}动作演示`} fallback={option.nameZh}/>
-            <div><h3>{option.nameZh}</h3><p>{item.name} · {item.repRange} 次</p><button className="inline-link" onClick={guest ? onRequireAuth : () => { setReplacing(item); setSelectionError('') }}>更换动作</button></div>
-            <strong>{counts[index]}<small> 组</small></strong>
-          </article>
-        })
+    <section className="section-block">
+      <div className="section-title">
+        <div><p className="eyebrow">训练安排</p><h2>今天做什么</h2></div>
+        <button className="section-action" onClick={customize}>{customized ? '已自定义 · 调整' : '调整动作与组数'}</button>
+      </div>
+      {customized && <p className="custom-hint">按你的设置执行 · 推荐方案为 {day.groups.reduce((sum, group) => sum + group.totalSets, 0)} 组</p>}
+      <div className="workout-list">{planned.map(({ group, option, sets }) => {
+        const exercise = matchExercise(exercises, option.query)
+        return <article className="workout-row" key={`${group.id}-${option.key}`}>
+          <ExerciseImage className="exercise-thumb" src={exercise?.gifUrl} alt={`${option.nameZh}动作演示`} fallback={option.nameZh}/>
+          <div><h3>{option.nameZh}</h3><p>{group.name} · {group.repRange} 次</p><button className="inline-link" onClick={guest ? onRequireAuth : () => { setReplacing({ group, current: option.key }); setSelectionError('') }}>更换动作</button></div>
+          <strong>{sets}<small> 组</small></strong>
+        </article>
       })}</div>
     </section>
     <button className="text-button" onClick={guest ? onRequireAuth : onChangePlan}>{guest ? '登录后选择并保存你的训练计划' : `当前计划：${plan.name} · 更换`}</button>
@@ -66,9 +74,12 @@ export function HomeScreen({ user, exercises, guest, draft, onStart, onChangePla
     {replacing && <div className="modal-backdrop" onClick={() => setReplacing(null)}>
       <section className="choice-sheet" onClick={(event) => event.stopPropagation()}>
         <div className="choice-sheet-top"><BackButton label="返回首页" onClick={() => setReplacing(null)} compact/><button className="icon-button" onClick={() => setReplacing(null)} aria-label="关闭动作选择"><Icon name="close"/></button></div>
-        <div className="choice-sheet-head"><div><p className="eyebrow">更换动作组</p><h2>{replacing.name}</h2></div></div>
+        <div className="choice-sheet-head"><div><p className="eyebrow">更换动作</p><h2>{replacing.group.name}</h2></div></div>
         <p>选择后会保存到你的账号，下一轮继续保持。</p>
-        {replacing.options.map((option) => <button key={option.key} className={user.exerciseSelections[replacing.id] === option.key || (!user.exerciseSelections[replacing.id] && replacing.options[0]?.key === option.key) ? 'selected' : ''} disabled={saving} onClick={() => choose(replacing, option.key)}><span><strong>{option.nameZh}</strong><small>{option.query}</small></span><Icon name="check" size={18}/></button>)}
+        {replacing.group.options.map((option) => {
+          const active = option.key === replacing.current
+          return <button key={option.key} className={active ? 'selected' : ''} disabled={saving || active} onClick={() => choose(replacing.group, option.key, replacing.current)}><span><strong>{option.nameZh}</strong><small>{option.query}</small></span><Icon name="check" size={18}/></button>
+        })}
         {selectionError && <p className="form-error">{selectionError}</p>}
       </section>
     </div>}

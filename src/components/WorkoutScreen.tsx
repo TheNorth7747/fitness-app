@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { distributeSets, getPlan, selectedOptions, type PlanDay, type WorkoutGroup } from '../../shared/plans'
+import { getPlan, resolveDayPlan, type PlanDay, type WorkoutGroup } from '../../shared/plans'
 import type { Exercise, User, WorkoutRecord, WorkoutSetInput } from '../../shared/api'
 import { recommendNextSet, suggestedSetValues, buildWorkoutSummary, type Recommendation, type WorkoutSummary } from '../../shared/progression'
 import { api, matchExercise } from '../api'
@@ -23,11 +23,8 @@ export function WorkoutScreen({ user, day, startedAt, draft, exercises, offline,
   onComplete: (user: User, summary: WorkoutSummary) => void
 }) {
   const plan = getPlan(user.planId ?? 'gym-three', user.legFocus)
-  const items = useMemo(() => day.groups.flatMap((group) => {
-    const options = selectedOptions(group, user.exerciseSelections)
-    const counts = distributeSets(group.totalSets, options.length)
-    return options.map((option, index) => ({ group, option, sets: counts[index], exercise: matchExercise(exercises, option.query) }))
-  }), [day, exercises, user.exerciseSelections])
+  const items = useMemo(() => resolveDayPlan(day, user.planCustomization, user.exerciseSelections)
+    .map((item) => ({ ...item, exercise: matchExercise(exercises, item.option.query) })), [day, exercises, user.exerciseSelections, user.planCustomization])
   const total = items.reduce((sum, item) => sum + item.sets, 0)
   const validSetKeys = useMemo(() => new Set(items.flatMap((item) => Array.from({ length: item.sets }, (_, index) => `${item.option.key}-${index}`))), [items])
   const [values, setValues] = useState<Record<string, DraftSetValue>>(() => draft?.values ?? {})
