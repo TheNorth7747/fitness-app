@@ -1,0 +1,47 @@
+:root {
+  font-family: Inter, "SF Pro Display", "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color: #f2f5ec;
+  background: #090b08;
+  color-scheme: dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --ink: #f2f5ec;
+  --paper: #090b08;
+  --card: #171b14;
+  --card-raised: #1d231a;
+  --card-soft: #141711;
+  --muted: #929a8b;
+  --line: #2b3126;
+  --line-strong: #3a4232;
+  --accent: #c8f45a;
+  --accent-strong: #a6d92f;
+  --accent-dim: #263114;
+  --accent-ink: #0c1007;
+  --danger: #ff8d82;
+  --danger-bg: #3a1916;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(900px 480px at 50% -130px, rgba(200, 244, 90, .08), transparent 65%),
+    var(--paper);
+  color: var(--ink);
+}
+button, input { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .48; }
+button, a, input { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+h1, h2, h3, p { margin: 0; }
+h1, h2, h3 { letter-spacing: -.04em; }
+img { display: block; max-width: 100%; }
+#root { min-height: 100svh; }
+::selection { background: var(--accent); color: var(--accent-ink); }
+::-webkit-scrollbar { width: 0; height: 0; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
