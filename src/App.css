@@ -1,6 +1,6 @@
 .app-shell { min-height: 100svh; }
 .app-main { width: min(100%, 760px); margin: 0 auto; }
-.page { padding: 22px 16px calc(104px + env(safe-area-inset-bottom)); animation: fade-in .22s ease; }
+.page { padding: 22px 16px calc(104px + env(safe-area-inset-bottom)); animation: fade-through-in var(--dur-medium) var(--ease-decelerate); }
 .page-header h1 { font-size: 38px; line-height: 1.06; margin: 8px 0 12px; }
 .page-header > p:last-child { color: var(--muted); line-height: 1.6; font-size: 13px; }
 .eyebrow { color: var(--accent); font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
@@ -13,7 +13,7 @@
 .icon-button { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: rgba(255,255,255,.025); color: var(--ink); flex: none; }
 .text-button { border: 0; background: transparent; color: var(--muted); padding: 12px 0; text-decoration: underline; text-underline-offset: 4px; }
 .attribution { color: #6f776a; font-size: 10px; line-height: 1.8; text-align: center; margin-top: 22px; }
-.form-error { color: var(--danger); background: var(--danger-bg); padding: 12px 14px; font-size: 12px; line-height: 1.5; border: 1px solid #63302b; border-radius: 12px; }
+.form-error { animation: shake var(--dur-medium) var(--ease-standard) both; color: var(--danger); background: var(--danger-bg); padding: 12px 14px; font-size: 12px; line-height: 1.5; border: 1px solid #63302b; border-radius: 12px; }
 .empty-state { padding: 48px 20px; text-align: center; display: grid; justify-items: center; gap: 12px; color: var(--muted); }
 .empty-state strong { color: var(--ink); font-size: 15px; }
 .empty-state p { font-size: 12px; line-height: 1.6; }
@@ -34,7 +34,9 @@
 .auth-panel { background: transparent; padding: 0; align-self: auto; min-width: 0; }
 .auth-panel form, .auth-panel label { min-width: 0; }
 .segmented { display: grid; grid-template-columns: 1fr 1fr; padding: 4px; background: var(--card-soft); border: 1px solid var(--line); border-radius: 14px; }
+.segmented button { transition: background-color var(--dur-short) var(--ease-standard), color var(--dur-short) var(--ease-standard); }
 .segmented button { min-height: 42px; border: 0; background: transparent; color: var(--muted); font-weight: 700; border-radius: 10px; }
+.segmented button { transition: background-color var(--dur-short) var(--ease-standard), color var(--dur-short) var(--ease-standard); }
 .segmented button.active { background: var(--card-raised); color: var(--ink); box-shadow: 0 2px 10px rgba(0,0,0,.25); }
 .segmented.large { margin: 24px 0; }
 .segmented.large button { min-height: 48px; }
@@ -48,7 +50,7 @@
 .guest-auth-card .primary { margin-top: 4px; }
 
 /* Plan selection */
-.plan-screen { width: min(100%, 700px); min-height: 100svh; margin: auto; padding: 30px 18px calc(40px + env(safe-area-inset-bottom)); }
+.plan-screen { animation: fade-through-in var(--dur-medium) var(--ease-decelerate); width: min(100%, 700px); min-height: 100svh; margin: auto; padding: 30px 18px calc(40px + env(safe-area-inset-bottom)); }
 .plan-back { min-height: 42px; border: 0; background: transparent; color: var(--muted); padding: 0 0 12px; font-size: 11px; display: flex; align-items: center; }
 .plan-back::before { content: '←'; margin-right: 6px; }
 .plan-list { display: grid; gap: 10px; }
@@ -99,6 +101,12 @@
 .section-title h2 { font-size: 22px; margin-top: 4px; }
 .section-title > span, .section-title > div > p { color: var(--muted); font-size: 10px; }
 .workout-list { display: grid; gap: 7px; }
+.workout-row, .exercise-session, .trend-card, .library-card, .history-list article, .editor-card, .plan-option, .muscle-tile, .picker-row, .exercise-row { animation: rise var(--dur-medium) var(--ease-decelerate) both; }
+.workout-list > :nth-child(1), .editor-groups > :nth-child(1), .picker-list > :nth-child(1) { animation-delay: 0ms; }
+.workout-list > :nth-child(2), .editor-groups > :nth-child(2), .picker-list > :nth-child(2) { animation-delay: 35ms; }
+.workout-list > :nth-child(3), .editor-groups > :nth-child(3), .picker-list > :nth-child(3) { animation-delay: 70ms; }
+.workout-list > :nth-child(4), .editor-groups > :nth-child(4), .picker-list > :nth-child(4) { animation-delay: 105ms; }
+.workout-list > :nth-child(n+5), .editor-groups > :nth-child(n+5), .picker-list > :nth-child(n+5) { animation-delay: 140ms; }
 .workout-row { display: grid; grid-template-columns: 54px 1fr auto; align-items: center; gap: 12px; padding: 10px 12px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; }
 .exercise-media { display: grid; place-items: center; overflow: hidden; background: #f2f4ed; color: #5c6456; font-size: 17px; font-weight: 850; flex: none; border-radius: 12px; }
 .exercise-media img { width: 100%; height: 100%; object-fit: cover; }
@@ -114,7 +122,7 @@
 
 /* Choice sheet */
 .screen-toolbar { display: flex; align-items: center; margin-bottom: 18px; }
-.choice-sheet { width: min(100%, 620px); max-height: 86svh; overflow-y: auto; background: var(--card-soft); padding: 16px 18px calc(24px + env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; border: 1px solid var(--line); animation: slide-up .22s ease; }
+.choice-sheet { width: min(100%, 620px); max-height: 86svh; overflow-y: auto; background: var(--card-soft); padding: 16px 18px calc(24px + env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; border: 1px solid var(--line); animation: sheet-up var(--dur-long) var(--ease-decelerate) both; }
 .choice-sheet-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
 .sheet-topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
 .sheet-footer { margin: 20px -22px -22px; padding: 12px 22px calc(20px + env(safe-area-inset-bottom)); position: sticky; bottom: 0; background: linear-gradient(180deg, rgba(18,21,16,.5), rgba(18,21,16,.99) 45%); backdrop-filter: blur(10px); border-top: 1px solid rgba(43,49,38,.5); }
@@ -131,7 +139,7 @@
 .choice-sheet > button small { color: var(--muted); font-size: 9px; }
 
 /* Bottom navigation */
-.bottom-nav { position: fixed; bottom: calc(10px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: min(calc(100% - 24px), 560px); min-height: 66px; padding: 6px; display: grid; grid-template-columns: repeat(3, 1fr); background: rgba(23,27,20,.92); border: 1px solid #30372a; border-radius: 21px; z-index: 20; backdrop-filter: blur(18px); box-shadow: 0 12px 40px rgba(0,0,0,.45), inset 0 1px rgba(255,255,255,.04); }
+.bottom-nav { transition: transform var(--dur-medium) var(--ease-decelerate); position: fixed; bottom: calc(10px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: min(calc(100% - 24px), 560px); min-height: 66px; padding: 6px; display: grid; grid-template-columns: repeat(3, 1fr); background: rgba(23,27,20,.92); border: 1px solid #30372a; border-radius: 21px; z-index: 20; backdrop-filter: blur(18px); box-shadow: 0 12px 40px rgba(0,0,0,.45), inset 0 1px rgba(255,255,255,.04); }
 .bottom-nav button { border: 0; background: transparent; color: #7b8376; min-height: 52px; display: grid; place-items: center; align-content: center; gap: 4px; font-size: 9px; border-radius: 15px; }
 .bottom-nav button.active { color: var(--accent); background: rgba(200,244,90,.07); font-weight: 750; }
 .bottom-nav button.active svg { stroke-width: 2.4; filter: drop-shadow(0 0 8px rgba(200,244,90,.2)); }
@@ -206,8 +214,8 @@
 .load-more span { color: var(--accent); }
 
 /* Learn sheet */
-.modal-backdrop { position: fixed; inset: 0; background: rgba(3,5,3,.76); z-index: 40; display: flex; align-items: flex-end; justify-content: center; backdrop-filter: blur(8px); }
-.exercise-modal { background: var(--card-soft); width: min(100%, 620px); max-height: 93svh; overflow-y: auto; padding: 22px; position: relative; border-radius: 26px 26px 0 0; border: 1px solid var(--line); animation: slide-up .22s ease; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(3,5,3,.76); z-index: 60; display: flex; align-items: flex-end; justify-content: center; backdrop-filter: blur(8px); animation: fade-in var(--dur-short) var(--ease-standard) both; }
+.exercise-modal { background: var(--card-soft); width: min(100%, 620px); max-height: 93svh; overflow-y: auto; padding: 22px; position: relative; border-radius: 26px 26px 0 0; border: 1px solid var(--line); animation: sheet-up var(--dur-long) var(--ease-decelerate) both; }
 .modal-close { position: absolute; top: 12px; right: 12px; z-index: 8; }
 .learn-modal { padding: 0; width: min(100%, 640px); }
 .learn-head { position: sticky; top: 0; z-index: 6; padding: 12px 18px 13px; background: rgba(20,23,17,.95); backdrop-filter: blur(18px); border-bottom: 1px solid rgba(43,49,38,.65); }
@@ -247,7 +255,7 @@
 
 /* Profile */
 .profile-header { display: flex; gap: 14px; align-items: center; margin-bottom: 20px; }
-.avatar { width: 58px; height: 58px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 24px; font-weight: 850; border-radius: 18px; }
+.avatar { width: 58px; height: 58px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 24px; font-weight: 850; border-radius: 50%; overflow: hidden; }
 .profile-header h1 { font-size: 28px; margin-top: 3px; }
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); background: linear-gradient(145deg, #1b2117, #11150f); border: 1px solid #303829; color: white; padding: 19px 8px; border-radius: 20px; }
 .stats-grid > div { display: grid; gap: 5px; text-align: center; border-right: 1px solid #30372b; }
@@ -452,7 +460,7 @@
   .modal-backdrop { align-items: center; padding: 20px; }
   .exercise-modal { border-radius: 26px; max-height: 90svh; }
   .choice-sheet { border-radius: 24px; margin-bottom: 0; }
-  .bottom-nav { bottom: 18px; }
+  .bottom-nav { transition: transform var(--dur-medium) var(--ease-decelerate); bottom: 18px; }
   .workout-content { padding: 30px 24px 60px; }
 }
 
@@ -473,7 +481,7 @@
 
 .editor-days { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 3px; scrollbar-width: none; }
 .editor-days::-webkit-scrollbar { display: none; }
-.editor-days button { flex: none; min-height: 58px; display: grid; gap: 3px; padding: 9px 13px; text-align: left; background: var(--card); color: var(--muted); border: 1px solid var(--line); border-radius: 14px; }
+.editor-days button { transition: background-color var(--dur-short) var(--ease-standard), border-color var(--dur-short) var(--ease-standard), color var(--dur-short) var(--ease-standard); flex: none; min-height: 58px; display: grid; gap: 3px; padding: 9px 13px; text-align: left; background: var(--card); color: var(--muted); border: 1px solid var(--line); border-radius: 14px; }
 .editor-days button span { font-size: 9px; letter-spacing: .1em; }
 .editor-days button strong { color: var(--ink); font-size: 12px; font-weight: 700; }
 .editor-days button.active { border-color: var(--accent); background: var(--accent-dim); }
@@ -507,7 +515,7 @@
 .editor-stepper small { color: var(--muted); font-size: 9px; font-weight: 500; }
 .editor-card-foot { color: var(--muted); font-size: 10px; margin-top: 11px; }
 .editor-card-foot strong { color: var(--ink); font-variant-numeric: tabular-nums; }
-.editor-notice { margin-top: 16px; padding: 11px 13px; background: var(--accent-dim); border: 1px solid var(--accent); border-radius: 13px; color: var(--ink); font-size: 10px; line-height: 1.6; }
+.editor-notice { margin-top: 16px; animation: rise var(--dur-medium) var(--ease-spring) both; padding: 11px 13px; background: var(--accent-dim); border: 1px solid var(--accent); border-radius: 13px; color: var(--ink); font-size: 10px; line-height: 1.6; }
 
 .editor-footer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding: 12px 20px calc(14px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, rgba(9,11,8,.55), rgba(9,11,8,.99) 50%); backdrop-filter: blur(14px); border-top: 1px solid var(--line); }
 .editor-footer-meta { display: flex; align-items: baseline; justify-content: space-between; font-size: 11px; }
@@ -523,7 +531,7 @@
 
 /* Exercise picker (二级选择：肌群 → 器械 → 动作) */
 .picker-backdrop { align-items: flex-end; }
-.picker-sheet { width: min(100%, 620px); max-height: 92svh; overflow-y: auto; background: var(--card-soft); padding: 16px 18px calc(24px + env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; border: 1px solid var(--line); animation: slide-up .22s ease; }
+.picker-sheet { width: min(100%, 620px); max-height: 92svh; overflow-y: auto; background: var(--card-soft); padding: 16px 18px calc(24px + env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; border: 1px solid var(--line); animation: sheet-up var(--dur-long) var(--ease-decelerate) both; }
 .picker-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
 .picker-title { text-align: center; }
 .picker-title h2 { font-size: 20px; margin-top: 3px; }
@@ -558,7 +566,7 @@
 .avatar-button img { width: 100%; height: 100%; object-fit: cover; }
 .avatar-edit { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); border-radius: 50%; border: 2px solid var(--paper); }
 .profile-username { color: var(--muted); font-size: 10px; margin-top: 3px; }
-.profile-editor { width: min(100%, 520px); background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 18px 18px calc(20px + env(safe-area-inset-bottom)); animation: slide-up .22s ease; }
+.profile-editor { width: min(100%, 520px); background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 18px 18px calc(20px + env(safe-area-inset-bottom)); animation: sheet-up var(--dur-long) var(--ease-decelerate) both; }
 .profile-editor h2 { font-size: 22px; margin-top: 4px; }
 .avatar-editor { display: grid; grid-template-columns: 92px 1fr; gap: 14px; align-items: center; margin: 16px 0; }
 .avatar-preview { width: 92px; height: 92px; border-radius: 50%; overflow: hidden; background: var(--card-soft); border: 1px solid var(--line-strong); display: grid; place-items: center; font-size: 32px; font-weight: 800; }
@@ -575,56 +583,26 @@
   .picker-sheet { border-radius: 24px; margin-bottom: 0; }
 }
 
-/* Exercise picker (二级选择：肌群 → 器械 → 动作) */
-.picker-backdrop { align-items: flex-end; }
-.picker-sheet { width: min(100%, 620px); max-height: 92svh; overflow-y: auto; background: var(--card-soft); padding: 16px 18px calc(24px + env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; border: 1px solid var(--line); animation: slide-up .22s ease; }
-.picker-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
-.picker-title { text-align: center; }
-.picker-title h2 { font-size: 20px; margin-top: 3px; }
-.picker-search { margin-bottom: 14px; }
-.picker-block { margin-bottom: 18px; }
-.picker-block-title { color: var(--muted); font-size: 10px; margin-bottom: 9px; }
-.picker-muscles { grid-template-columns: 1fr 1fr; margin-bottom: 6px; }
-.picker-muscles .muscle-tile { justify-content: space-between; padding: 12px 13px; }
-.picker-list { display: grid; gap: 7px; }
-.picker-row { display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 11px; min-height: 60px; padding: 0 12px; text-align: left; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; }
-.picker-row:active { border-color: var(--accent); }
-.picker-row svg { color: var(--accent); }
-.picker-thumb { width: 48px; height: 48px; border-radius: 11px; }
-.picker-copy { display: grid; gap: 3px; }
-.picker-copy strong { font-size: 13px; }
-.picker-copy small { color: var(--muted); font-size: 9px; }
 
-/* 计划编辑器：已选动作行 */
-.editor-chosen { display: grid; gap: 7px; }
-.editor-chosen-row { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px 9px; padding: 10px 10px 9px; background: var(--card-soft); border: 1px solid var(--line); border-radius: 14px; }
-.editor-thumb { width: 44px; height: 44px; border-radius: 11px; }
-.editor-row-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 7px; }
-.editor-row-actions button { min-width: 66px; height: 34px; display: flex; align-items: center; justify-content: center; gap: 5px; background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 10px; font-size: 10px; }
-.editor-row-actions button:active { color: var(--accent); border-color: var(--accent); }
-.editor-add { width: 100%; min-height: 48px; margin-top: 9px; display: flex; align-items: center; justify-content: center; gap: 7px; background: transparent; color: var(--accent); border: 1px dashed var(--line-strong); border-radius: 13px; font-size: 12px; }
-.editor-add:disabled { color: var(--muted); }
+/* 二级菜单前进/后退方向性过渡 */
+.picker-body { animation: axis-x-in var(--dur-medium) var(--ease-decelerate) both; }
+.picker-body.axis-back { animation-name: axis-x-out-in; }
+/* 组数变化时数字轻微弹动 */
+.editor-stepper strong { animation: pop var(--dur-short) var(--ease-spring) both; }
 
-/* 头像与昵称 */
-.home-avatar { width: 40px; height: 40px; flex: none; padding: 0; border-radius: 50%; overflow: hidden; background: var(--card); border: 1px solid var(--line-strong); display: grid; place-items: center; color: var(--ink); font-weight: 800; font-size: 15px; }
-.home-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.avatar-button { position: relative; }
-.avatar-button img { width: 100%; height: 100%; object-fit: cover; }
-.avatar-edit { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); border-radius: 50%; border: 2px solid var(--paper); }
-.profile-username { color: var(--muted); font-size: 10px; margin-top: 3px; }
-.profile-editor { width: min(100%, 520px); background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 18px 18px calc(20px + env(safe-area-inset-bottom)); animation: slide-up .22s ease; }
-.profile-editor h2 { font-size: 22px; margin-top: 4px; }
-.avatar-editor { display: grid; grid-template-columns: 92px 1fr; gap: 14px; align-items: center; margin: 16px 0; }
-.avatar-preview { width: 92px; height: 92px; border-radius: 50%; overflow: hidden; background: var(--card-soft); border: 1px solid var(--line-strong); display: grid; place-items: center; font-size: 32px; font-weight: 800; }
-.avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
-.avatar-actions { display: grid; gap: 8px; }
-.avatar-actions .secondary { min-height: 44px; justify-content: flex-start; gap: 7px; font-size: 12px; }
-.avatar-actions small, .profile-editor > small { color: var(--muted); font-size: 9px; line-height: 1.6; }
-.profile-editor .field-label { display: grid; gap: 7px; color: var(--muted); font-size: 10px; }
-.profile-editor-actions { grid-template-columns: auto 1fr; margin-top: 18px; }
-.profile-editor-actions .primary, .profile-editor-actions .secondary { min-height: 48px; justify-content: center; }
-
-@media (min-width: 760px) {
-  .picker-muscles { grid-template-columns: repeat(4, 1fr); }
-  .picker-sheet { border-radius: 24px; margin-bottom: 0; }
-}
+/* 训练日顺序编辑 */
+.day-order { margin-bottom: 14px; background: var(--card-soft); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.day-order-toggle { width: 100%; min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px; background: transparent; color: var(--ink); border: 0; text-align: left; }
+.day-order-toggle span:first-child { display: grid; gap: 3px; }
+.day-order-toggle strong { font-size: 13px; }
+.day-order-toggle small { color: var(--muted); font-size: 9px; line-height: 1.5; }
+.day-order-caret { display: grid; place-items: center; color: var(--muted); transition: transform var(--dur-medium) var(--ease-decelerate), color var(--dur-short) var(--ease-standard); }
+.day-order-caret.open { transform: rotate(90deg); color: var(--accent); }
+.day-order-list { display: grid; gap: 6px; padding: 0 12px 12px; animation: rise var(--dur-medium) var(--ease-decelerate) both; }
+.day-order-row { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 10px; padding: 8px 10px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; animation: rise var(--dur-medium) var(--ease-decelerate) both; }
+.day-order-index { color: var(--accent); font-size: 9px; letter-spacing: .1em; }
+.day-order-name { font-size: 12px; font-weight: 650; }
+.day-order-actions { display: flex; gap: 6px; }
+.day-order-actions button { width: 34px; height: 34px; display: grid; place-items: center; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
+.day-order-actions button:disabled { opacity: .3; }
+.day-order-hint { color: var(--muted); font-size: 9px; line-height: 1.6; margin-top: 2px; }

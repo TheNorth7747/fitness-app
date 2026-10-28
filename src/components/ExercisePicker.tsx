@@ -23,6 +23,7 @@ export function ExercisePicker({ exercises, groupName, recommendedIds, excludeId
   const [muscle, setMuscle] = useState<MuscleGroup | null>(null)
   const [equipment, setEquipment] = useState<EquipmentGroup | '全部'>('全部')
   const [visible, setVisible] = useState(PAGE_SIZE)
+  const [direction, setDirection] = useState<'forward' | 'back'>('forward')
 
   const excluded = useMemo(() => new Set(excludeIds), [excludeIds])
   const recommended = useMemo(
@@ -56,12 +57,14 @@ export function ExercisePicker({ exercises, groupName, recommendedIds, excludeId
   }, [exercises, muscle, excluded])
 
   function pickMuscle(next: MuscleGroup) {
+    setDirection('forward')
     setMuscle(next)
     setEquipment('全部')
     setVisible(PAGE_SIZE)
   }
 
   function back() {
+    setDirection('back')
     if (muscle) { setMuscle(null); setVisible(PAGE_SIZE); return }
     if (query) { setQuery(''); return }
     onClose()
@@ -83,6 +86,7 @@ export function ExercisePicker({ exercises, groupName, recommendedIds, excludeId
         {query && <button onClick={() => setQuery('')} aria-label="清空搜索"><Icon name="close" size={14}/></button>}
       </div>
 
+      <div className={`picker-body ${direction === 'forward' ? 'axis-forward' : 'axis-back'}`} key={muscle ?? 'root'}>
       {!muscle && !query && <>
         {recommended.length > 0 && <div className="picker-block">
           <p className="picker-block-title">本组推荐</p>
@@ -117,6 +121,7 @@ export function ExercisePicker({ exercises, groupName, recommendedIds, excludeId
         </button>)}</div>
         {results.length > visible && <button className="secondary full" onClick={() => setVisible((current) => current + PAGE_SIZE)}>加载更多动作</button>}
       </>}
+      </div>
     </section>
   </div>
 }

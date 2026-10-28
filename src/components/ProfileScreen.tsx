@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { displayNameOf, type User, type WorkoutRecord } from '../../shared/api'
 import { buildExerciseTrends, type ExerciseTrend } from '../../shared/progression'
-import { getPlan, RECOMMENDED_SETS_MAX, RECOMMENDED_SETS_MIN } from '../../shared/plans'
+import { getPlan, orderedDays, RECOMMENDED_SETS_MAX, RECOMMENDED_SETS_MIN } from '../../shared/plans'
 import { api } from '../api'
 import { ProfileEditor } from './ProfileEditor'
 import { BackButton } from './BackButton'
@@ -118,7 +118,7 @@ export function ProfileScreen({ user, onChangePlan, onCustomize, onProfileChange
     </header>
     <section className="stats-grid"><div><strong>{workouts.length}</strong><span>累计训练</span></div><div><strong>{workouts.reduce((sum, item) => sum + item.sets.length, 0)}</strong><span>完成组数</span></div><div><strong>{Math.round(volume)}</strong><span>累计容量 kg</span></div></section>
 
-    <section className="section-block"><div className="section-title"><h2>当前计划</h2></div><button className="current-plan" onClick={onChangePlan}><span><small>{plan.location === 'gym' ? '健身房' : '居家'} · {plan.days.length} 天循环</small><strong>{plan.name}</strong><span>下一站：{plan.days[user.cyclePosition % plan.days.length].name}</span></span><Icon name="arrow"/></button>
+    <section className="section-block"><div className="section-title"><h2>当前计划</h2></div><button className="current-plan" onClick={onChangePlan}><span><small>{plan.location === 'gym' ? '健身房' : '居家'} · {plan.days.length} 天循环</small><strong>{plan.name}</strong><span>下一站：{orderedDays(plan, user.planDayOrder)[user.cyclePosition % plan.days.length].name}</span></span><Icon name="arrow"/></button>
       <div className="plan-actions">
         <button className="secondary" onClick={onCustomize}><Icon name="spark" size={16}/>自定义动作与组数</button>
         <button className="secondary" onClick={onChangePlan}>更换计划</button>
@@ -156,7 +156,7 @@ export function ProfileScreen({ user, onChangePlan, onCustomize, onProfileChange
     </section>
 
     <button className="logout-button" onClick={onLogout}><Icon name="logout"/>退出登录</button>
-    <p className="attribution">Fitday v1.5.0<br/>动作数据：hasaneyldrm/exercises-dataset<br/>媒体：© Gym visual · 计划参考：B站好人松松</p>
+    <p className="attribution">Fitday v1.6.0<br/>动作数据：hasaneyldrm/exercises-dataset<br/>媒体：© Gym visual · 计划参考：B站好人松松</p>
 
     {editingProfile && <ProfileEditor user={user} onSave={async (displayName, avatar) => { await onProfileChange(displayName, avatar); setEditingProfile(false) }} onClose={() => setEditingProfile(false)}/>}
     {selectedTrend && <div className="modal-backdrop" onClick={() => setSelectedTrend(null)}><article className="exercise-modal trend-detail" onClick={(event) => event.stopPropagation()}>

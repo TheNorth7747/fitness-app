@@ -58,13 +58,7 @@ Caddy → Nginx
 
 - `shared/exercises.ts`：`matchExercise` / `findExercise` / `searchExercises` / `defaultMuscleForGroup`，前后端共用同一套动作匹配规则
 - 自定义统一存 `exerciseId`；`PlannedExercise.key` 对计划内动作沿用 `option.key`，动作库自选为 `lib:<id>`，历史与力量趋势不会断
-- `users.display_name` / `users.avatar`：头像在前端裁成 288px 正方形、JPEG 0.82 后以 data URL 保存，上限 300 KB
-
-### 计划与身份
-
-- `shared/exercises.ts`：`matchExercise` / `findExercise` / `searchExercises` / `defaultMuscleForGroup`，前后端共用同一套动作匹配规则
-- 自定义统一存 `exerciseId`；`PlannedExercise.key` 对计划内动作沿用 `option.key`，动作库自选为 `lib:<id>`，历史与力量趋势不会断
-- `users.display_name` / `users.avatar`：头像在前端裁成 288px 正方形、JPEG 0.82 后以 data URL 保存，上限 300 KB
+- `users.display_name` / `users.avatar`：头像在前端裁成 288px 正方形、JPEG 0.82 后以 data URL 保存，上限 300 KB；显示与裁切预览均为圆形
 
 ### 计划自定义
 
@@ -74,25 +68,20 @@ Caddy → Nginx
 - `PUT /api/me/exercise-selection`：首页换动作时同步写入自定义，并清理被替换动作的组数记录
 - 切换计划时清空自定义
 
-### 计划与身份
+### 训练日顺序
 
-- `shared/exercises.ts`：`matchExercise` / `findExercise` / `searchExercises` / `defaultMuscleForGroup`，前后端共用同一套动作匹配规则
-- 自定义统一存 `exerciseId`；`PlannedExercise.key` 对计划内动作沿用 `option.key`，动作库自选为 `lib:<id>`，历史与力量趋势不会断
-- `users.display_name` / `users.avatar`：头像在前端裁成 288px 正方形、JPEG 0.82 后以 data URL 保存，上限 300 KB
+- `shared/plans.ts`：`orderedDays(plan, order)` 只接受当前计划训练日 id 的完整排列，否则回退自然顺序；`moveDay(ids, from, to)` 供编辑器上下移动
+- `users.plan_day_order` JSONB：训练日 id 数组，空数组表示自然顺序
+- `PUT /api/me/plan`（可选 `dayOrder`）与 `PUT /api/me/plan-day-order`：都走 `sanitizeDayOrder`，非法项剔除后若不构成完整排列则回退空数组
+- 训练保存时的训练日定位、完成总结里的下一练、`cycle_position` 推进统一使用 `orderedDays`
+- 切换计划时顺序重置
 
-### 计划与身份
+### 动效
 
-- `shared/exercises.ts`：`matchExercise` / `findExercise` / `searchExercises` / `defaultMuscleForGroup`，前后端共用同一套动作匹配规则
-- 自定义统一存 `exerciseId`；`PlannedExercise.key` 对计划内动作沿用 `option.key`，动作库自选为 `lib:<id>`，历史与力量趋势不会断
-- `users.display_name` / `users.avatar`：头像在前端裁成 288px 正方形、JPEG 0.82 后以 data URL 保存，上限 300 KB
-
-### 计划自定义
-
-- `shared/plans.ts`：`recommendedCount` 按每动作 4–5 组推导推荐动作数，`resolveGroupPlan` / `resolveDayPlan` 合并用户自定义，非法输入一律回退推荐值
-- `users.plan_customization` JSONB：`planDayId -> groupId -> { optionKeys, sets }`
-- `PUT /api/me/plan-customization`：只接受属于当前计划训练日的动作，组数夹紧到 1–8，未知动作剔除
-- `PUT /api/me/exercise-selection`：首页换动作时同步写入自定义，并清理被替换动作的组数记录
-- 切换计划时清空自定义
+- `src/index.css` 定义令牌：`--ease-standard/decelerate/accelerate/spring`、`--dur-press/short/medium/long`，取 Material Design 3 motion 的曲线与时长的思路
+- 关键帧：`rise`（入场）、`fade-through-in`（主视图切换）、`axis-x-in` / `axis-x-out-in`（二级菜单前进与后退）、`sheet-up`（弹层）、`pop`（组数数字）、`shake`（表单错误）
+- 容器级动画不使用 `both`：残留 transform 会成为 `position: fixed` 弹层的包含块，把弹层顶出屏幕；列表项保留 `both`，`.modal-backdrop` z-index 提升到 60
+- `prefers-reduced-motion: reduce` 下关闭动画与按压缩放
 
 ## 后端
 
@@ -128,7 +117,7 @@ Service Worker 缓存应用外壳、动作字典和已访问的动作 GIF。离�
 ## 测试
 
 - `server/test/progression.test.ts`：次数解析、e1RM、建议、PR、趋势
-- `server/test/plans.test.ts`：计划结构、动作名匹配、全部媒体文件存在
+- `server/test/plans.test.ts`：计划结构、动作名匹配、全部媒体文件存在、训练日排列与 `moveDay`
 - `server/test/password.test.ts`：密码哈希与会话令牌
 - 浏览器端到端：游客、注册、计划、草稿恢复、30 组保存、总结、趋势、导出、重登与离线缓存
 

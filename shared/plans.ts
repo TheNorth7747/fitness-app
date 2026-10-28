@@ -316,3 +316,26 @@ export const dayPlanTotals = (
 export const dayOptionKeys = (day: PlanDay) => new Set(day.groups.flatMap((group) => group.options.map((option) => option.key)))
 
 export const isLibraryKey = (key: string) => key.startsWith('lib:')
+
+/** 训练日顺序：只接受当前计划训练日的一个排列，其他情况回退自然顺序 */
+export const orderedDays = (plan: TrainingPlan, order?: string[] | null): PlanDay[] => {
+  if (!order?.length) return plan.days
+  if (order.length !== plan.days.length) return plan.days
+  const byId = new Map(plan.days.map((day) => [day.id, day]))
+  const seen = new Set<string>()
+  for (const id of order) {
+    if (!byId.has(id) || seen.has(id)) return plan.days
+    seen.add(id)
+  }
+  return order.map((id) => byId.get(id)!)
+}
+
+/** 把某个训练日挪到另一位（用于自定义 Day1/2/3 练什么） */
+export const moveDay = (ids: string[], from: number, to: number) => {
+  if (from === to || from < 0 || to < 0 || from >= ids.length || to >= ids.length) return ids
+  const next = [...ids]
+  const [item] = next.splice(from, 1)
+  next.splice(to, 0, item)
+  return next
+}
+

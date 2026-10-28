@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { displayNameOf, type Exercise, type User } from '../../shared/api'
 import {
-  clampSets, dayPlanTotals, getPlan, MAX_EXERCISES_PER_GROUP, RECOMMENDED_SETS_MAX, RECOMMENDED_SETS_MIN,
+  clampSets, dayPlanTotals, getPlan, orderedDays, MAX_EXERCISES_PER_GROUP, RECOMMENDED_SETS_MAX, RECOMMENDED_SETS_MIN,
   resolveDayPlan, resolveGroupPlan, type PlanCustomization, type PlanDay, type WorkoutGroup,
 } from '../../shared/plans'
 import { findExercise, matchExercise } from '../api'
@@ -29,8 +29,9 @@ export function HomeScreen({ user, exercises, guest, draft, onStart, onChangePla
   const [selectionError, setSelectionError] = useState('')
   const [picking, setPicking] = useState<{ group: WorkoutGroup; replaceId: string } | null>(null)
   const plan = getPlan(user.planId ?? 'gym-three', user.legFocus)
-  const nextDay = plan.days[user.cyclePosition % plan.days.length]
-  const draftDay = draft && draft.planId === plan.id ? plan.days.find((item) => item.id === draft.planDayId) : undefined
+  const days = orderedDays(plan, user.planDayOrder)
+  const nextDay = days[user.cyclePosition % days.length]
+  const draftDay = draft && draft.planId === plan.id ? days.find((item) => item.id === draft.planDayId) : undefined
   const day = draftDay ?? nextDay
   const planned = resolveDayPlan(day, user.planCustomization, exercises, user.exerciseSelections)
   const totals = dayPlanTotals(day, user.planCustomization, exercises, user.exerciseSelections)
@@ -74,7 +75,7 @@ export function HomeScreen({ user, exercises, guest, draft, onStart, onChangePla
     {guest && <button className="guest-strip" onClick={onRequireAuth}><span>游客模式 · 数据尚未保存</span><strong>去「我的」登录 <Icon name="arrow" size={16}/></strong></button>}
     {!guest && draft && <section className="draft-strip"><div><p className="eyebrow">上次训练未完成</p><strong>{day.name}</strong><span>已完成 {draft.completed.length} 组 · 进度保存在本机</span></div><button onClick={onDiscardDraft}>放弃草稿</button></section>}
     <section className="today-hero">
-      <div className="hero-top"><span className="dark-tag">今日训练 · DAY {plan.days.indexOf(day) + 1}</span><span>{plan.shortName}</span></div>
+      <div className="hero-top"><span className="dark-tag">今日训练 · DAY {days.indexOf(day) + 1}</span><span>{plan.shortName}</span></div>
       <div><p>{day.subtitle}</p><h2>{day.name}</h2></div>
       <div className="hero-metrics"><span><strong>{totals.exercises}</strong> 个动作</span><span><strong>{totals.sets}</strong> 总组数</span><span><strong>{RECOMMENDED_SETS_MIN}–{RECOMMENDED_SETS_MAX}</strong> 组/动作</span></div>
       <button className="accent-button" onClick={guest ? onRequireAuth : () => onStart(day)}>{guest ? '登录后开始训练' : draft ? '继续未完成训练' : '开始今日训练'} <Icon name="arrow"/></button>

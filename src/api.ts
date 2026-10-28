@@ -22,13 +22,15 @@ export const api = {
   login: (username: string, password: string) =>
     request<{ user: User }>('/api/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
   logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
-  selectPlan: (planId: string, legFocus: LegFocus, customization?: PlanCustomization) =>
-    request<{ user: User }>('/api/me/plan', { method: 'PUT', body: JSON.stringify({ planId, legFocus, customization }) }),
+  selectPlan: (planId: string, legFocus: LegFocus, customization?: PlanCustomization, dayOrder?: string[]) =>
+    request<{ user: User }>('/api/me/plan', { method: 'PUT', body: JSON.stringify({ planId, legFocus, customization, dayOrder }) }),
   saveWorkout: (workout: WorkoutInput) =>
     request<{ workout: WorkoutRecord; user: User }>('/api/me/workouts', { method: 'POST', body: JSON.stringify(workout) }),
   workouts: () => request<{ workouts: WorkoutRecord[] }>('/api/me/workouts'),
   savePlanCustomization: (customization: PlanCustomization) =>
     request<{ user: User }>('/api/me/plan-customization', { method: 'PUT', body: JSON.stringify({ customization }) }),
+  saveDayOrder: (dayOrder: string[]) =>
+    request<{ user: User }>('/api/me/plan-day-order', { method: 'PUT', body: JSON.stringify({ dayOrder }) }),
   saveProfile: (displayName: string, avatar: string) =>
     request<{ user: User }>('/api/me/profile', { method: 'PUT', body: JSON.stringify({ displayName, avatar }) }),
 }

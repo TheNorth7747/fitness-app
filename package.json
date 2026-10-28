@@ -1,7 +1,7 @@
 {
   "name": "fitday",
   "private": true,
-  "version": "1.5.0",
+  "version": "1.6.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -38,9 +38,5 @@
     "vite": "^8.3.5"
   },
   "description": "手机优先的力量训练 PWA：计划向导自定义、渐进负荷、训练草稿、中文动作库与力量趋势",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/TheNorth7747/fitness-app.git"
-  }
+  "license": "MIT"
 }

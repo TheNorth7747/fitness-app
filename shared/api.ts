@@ -12,6 +12,8 @@ export interface User {
   cyclePosition: number
   exerciseSelections: Record<string, string>
   planCustomization: PlanCustomization
+  /** 训练日顺序（planDayId 列表）；为空表示使用计划默认顺序 */
+  planDayOrder: string[]
 }
 
 export const DISPLAY_NAME_MAX = 24

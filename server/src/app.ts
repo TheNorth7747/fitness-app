@@ -4,7 +4,7 @@ import cookie from '@fastify/cookie'
 import rateLimit from '@fastify/rate-limit'
 import { z } from 'zod'
 import type pg from 'pg'
-import { clampSets, dayOptionKeys, getPlan, getPlans, isLibraryKey, MAX_EXERCISES_PER_GROUP, RECOMMENDED_SETS_MIN, SETS_MAX, SETS_MIN, type LegFocus, type PlanCustomization } from '../../shared/plans.js'
+import { clampSets, dayOptionKeys, getPlan, getPlans, isLibraryKey, MAX_EXERCISES_PER_GROUP, orderedDays, RECOMMENDED_SETS_MIN, SETS_MAX, SETS_MIN, type LegFocus, type PlanCustomization, type TrainingPlan } from '../../shared/plans.js'
 import { AVATAR_MAX_BYTES, DISPLAY_NAME_MAX, type User, type WorkoutRecord } from '../../shared/api.js'
 import { hashPassword, hashToken, newSessionToken, verifyPassword } from './auth.js'
 
@@ -21,9 +21,10 @@ interface UserRow {
   cycle_position: number
   exercise_selections: Record<string, string>
   plan_customization: PlanCustomization
+  plan_day_order: string[]
 }
 
-const USER_COLUMNS = 'id, username, display_name, avatar, plan_id, leg_focus, cycle_position, exercise_selections, plan_customization'
+const USER_COLUMNS = 'id, username, display_name, avatar, plan_id, leg_focus, cycle_position, exercise_selections, plan_customization, plan_day_order'
 
 const toUser = (row: UserRow): User => ({
   id: row.id,
@@ -35,6 +36,7 @@ const toUser = (row: UserRow): User => ({
   cyclePosition: row.cycle_position,
   exerciseSelections: row.exercise_selections ?? {},
   planCustomization: row.plan_customization ?? {},
+  planDayOrder: Array.isArray(row.plan_day_order) ? row.plan_day_order : [],
 })
 const setSessionCookie = (reply: FastifyReply, token: string) => {
   reply.setCookie(COOKIE_NAME, token, {
@@ -89,7 +91,7 @@ export async function buildApp(pool: pg.Pool): Promise<FastifyInstance> {
     const token = request.cookies[COOKIE_NAME]
     if (!token) return null
     const result = await pool.query<UserRow>(
-      `SELECT u.id, u.username, u.display_name, u.avatar, u.plan_id, u.leg_focus, u.cycle_position, u.exercise_selections, u.plan_customization
+      `SELECT u.id, u.username, u.display_name, u.avatar, u.plan_id, u.leg_focus, u.cycle_position, u.exercise_selections, u.plan_customization, u.plan_day_order
        FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.token_hash = $1 AND s.expires_at > NOW()`,
       [hashToken(token)],
@@ -197,6 +199,15 @@ export async function buildApp(pool: pg.Pool): Promise<FastifyInstance> {
     return clean
   }
 
+  /** 训练日顺序只接受当前计划训练日的一个排列 */
+  function sanitizeDayOrder(raw: unknown, plan: TrainingPlan): string[] {
+    if (!Array.isArray(raw)) return []
+    const ids = raw.filter((item): item is string => typeof item === 'string')
+    const allowed = new Set(plan.days.map((day) => day.id))
+    const unique = Array.from(new Set(ids)).filter((id) => allowed.has(id))
+    return unique.length === plan.days.length ? unique : []
+  }
+
   app.put('/api/me/plan', async (request, reply) => {
     const user = await requireUser(request, reply)
     if (!user) return
@@ -204,15 +215,16 @@ export async function buildApp(pool: pg.Pool): Promise<FastifyInstance> {
       planId: z.string(),
       legFocus: z.enum(['quads', 'glutes']),
       customization: customizationSchema.optional(),
+      dayOrder: z.array(z.string().min(1).max(80)).optional(),
     }).safeParse(request.body)
     if (!parsed.success) return reply.code(400).send({ message: '请选择有效的训练计划' })
     const plan = getPlans(parsed.data.legFocus).find((item) => item.id === parsed.data.planId)
     if (!plan) return reply.code(400).send({ message: '训练计划不存在' })
     const customization = sanitizeCustomization(parsed.data.customization, plan.id, parsed.data.legFocus)
     const updated = await pool.query<UserRow>(
-      `UPDATE users SET plan_id = $1, leg_focus = $2, cycle_position = 0, exercise_selections = '{}'::jsonb, plan_customization = $3::jsonb WHERE id = $4
+      `UPDATE users SET plan_id = $1, leg_focus = $2, cycle_position = 0, exercise_selections = '{}'::jsonb, plan_customization = $3::jsonb, plan_day_order = $4::jsonb WHERE id = $5
        RETURNING ${USER_COLUMNS}`,
-      [plan.id, parsed.data.legFocus, JSON.stringify(customization), user.id],
+      [plan.id, parsed.data.legFocus, JSON.stringify(customization), JSON.stringify(sanitizeDayOrder(parsed.data.dayOrder, plan)), user.id],
     )
     return { user: toUser(updated.rows[0]) }
   })
@@ -228,6 +240,22 @@ export async function buildApp(pool: pg.Pool): Promise<FastifyInstance> {
       `UPDATE users SET plan_customization = $1::jsonb WHERE id = $2
        RETURNING ${USER_COLUMNS}`,
       [JSON.stringify(clean), user.id],
+    )
+    return { user: toUser(updated.rows[0]) }
+  })
+
+  app.put('/api/me/plan-day-order', async (request, reply) => {
+    const user = await requireUser(request, reply)
+    if (!user) return
+    if (!user.plan_id) return reply.code(400).send({ message: '请先选择训练计划' })
+    const parsed = z.object({ dayOrder: z.array(z.string().min(1).max(80)) }).safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ message: '训练日顺序格式不正确' })
+    const plan = getPlan(user.plan_id, user.leg_focus)
+    const order = sanitizeDayOrder(parsed.data.dayOrder, plan)
+    const updated = await pool.query<UserRow>(
+      `UPDATE users SET plan_day_order = $1::jsonb WHERE id = $2
+       RETURNING ${USER_COLUMNS}`,
+      [JSON.stringify(order), user.id],
     )
     return { user: toUser(updated.rows[0]) }
   })
@@ -283,7 +311,7 @@ export async function buildApp(pool: pg.Pool): Promise<FastifyInstance> {
     if (!parsed.success) return reply.code(400).send({ message: '训练数据不完整或格式不正确' })
     if (!user.plan_id) return reply.code(400).send({ message: '请先选择训练计划' })
     const plan = getPlan(user.plan_id, user.leg_focus)
-    const day = plan.days.find((item) => item.id === parsed.data.planDayId)
+    const day = orderedDays(plan, user.plan_day_order).find((item) => item.id === parsed.data.planDayId)
     if (!day) return reply.code(400).send({ message: '训练日与当前计划不匹配' })
     // 计划内动作键，或从动作库自选的 lib:<id> 键
     const allowedKeys = dayOptionKeys(day)
@@ -307,7 +335,7 @@ export async function buildApp(pool: pg.Pool): Promise<FastifyInstance> {
           [randomUUID(), workoutId, set.exerciseKey, set.exerciseId, set.exerciseName, set.setNumber, set.reps, set.weightKg],
         )
       }
-      const nextPosition = (user.cycle_position + 1) % plan.days.length
+      const nextPosition = (user.cycle_position + 1) % orderedDays(plan, user.plan_day_order).length
       const updated = await client.query<UserRow>(
         `UPDATE users SET cycle_position = $1 WHERE id = $2
          RETURNING id, username, plan_id, leg_focus, cycle_position, exercise_selections, plan_customization`,

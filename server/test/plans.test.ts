@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import {
   clampSets, dayOptionKeys, dayPlanTotals, distributeSets, getPlan, getPlans, isLibraryKey, MAX_EXERCISES_PER_GROUP,
-  recommendedCount, recommendedGroupPlan, resolveDayPlan, resolveGroupPlan, RECOMMENDED_SETS_MAX, RECOMMENDED_SETS_MIN,
+  moveDay, orderedDays, recommendedCount, recommendedGroupPlan, resolveDayPlan, resolveGroupPlan, RECOMMENDED_SETS_MAX, RECOMMENDED_SETS_MIN,
   SETS_MAX, SETS_MIN, type WorkoutGroup,
 } from '../../shared/plans.js'
 
@@ -163,6 +163,26 @@ test('day totals follow the customization and stay consistent', () => {
   assert.equal(edited.exercises, editedItems.length)
   const restVolume = day.groups.slice(1).reduce((sum, item) => sum + item.totalSets, 0)
   assert.equal(edited.sets, 4 + restVolume)
+})
+
+test('training day order only accepts a full permutation of the plan days', () => {
+  const plan = getPlan('gym-three', 'quads')
+  const natural = plan.days.map((day) => day.id)
+  assert.deepEqual(orderedDays(plan, []), plan.days)
+  assert.deepEqual(orderedDays(plan, null), plan.days)
+  // 合法排列
+  const rotated = [...natural.slice(1), natural[0]]
+  assert.deepEqual(orderedDays(plan, rotated).map((day) => day.id), rotated)
+  // 重复、缺失、未知 id 一律回退自然顺序
+  assert.deepEqual(orderedDays(plan, [natural[0], natural[0], natural[1]]), plan.days)
+  assert.deepEqual(orderedDays(plan, natural.slice(0, 2)), plan.days)
+  assert.deepEqual(orderedDays(plan, [...natural.slice(1), 'ghost']), plan.days)
+  // 上下移动
+  assert.deepEqual(moveDay(natural, 0, 2), [natural[1], natural[2], natural[0]])
+  assert.deepEqual(moveDay(natural, 2, 0), [natural[2], natural[0], natural[1]])
+  assert.deepEqual(moveDay(natural, 1, 1), natural)
+  assert.deepEqual(moveDay(natural, -1, 0), natural)
+  assert.deepEqual(moveDay(natural, 0, 9), natural)
 })
 
 test('library keys are accepted when a workout is saved', () => {

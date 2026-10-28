@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   plan_customization JSONB NOT NULL DEFAULT '{}'::jsonb,
   display_name VARCHAR(24),
   avatar TEXT,
+  plan_day_order JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -17,6 +18,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS exercise_selections JSONB NOT NULL DE
 ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_customization JSONB NOT NULL DEFAULT '{}'::jsonb;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name VARCHAR(24);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_day_order JSONB NOT NULL DEFAULT '[]'::jsonb;
 
 CREATE TABLE IF NOT EXISTS sessions (
   token_hash CHAR(64) PRIMARY KEY,

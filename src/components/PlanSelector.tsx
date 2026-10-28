@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import type { Exercise, User } from '../../shared/api'
-import { dayPlanTotals, getPlan, getPlans, RECOMMENDED_SETS_MAX, RECOMMENDED_SETS_MIN, type LegFocus, type PlanCustomization } from '../../shared/plans'
+import { dayPlanTotals, getPlan, getPlans, orderedDays, RECOMMENDED_SETS_MAX, RECOMMENDED_SETS_MIN, type LegFocus, type PlanCustomization } from '../../shared/plans'
 import { api } from '../api'
 import { BackButton } from './BackButton'
 import { Icon } from './Icon'
+import { DayOrderEditor } from './DayOrderEditor'
 import { PlanDayEditor } from './PlanDayEditor'
 
 export function PlanSelector({ initialPlan, exercises, onComplete, onCancel }: {
@@ -18,16 +19,19 @@ export function PlanSelector({ initialPlan, exercises, onComplete, onCancel }: {
   const [selected, setSelected] = useState(initialPlan ?? 'gym-three')
   const [dayIndex, setDayIndex] = useState(0)
   const [customization, setCustomization] = useState<PlanCustomization>({})
+  const [dayOrder, setDayOrder] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const plans = getPlans(focus).filter((plan) => plan.location === location)
   const plan = getPlan(selected, focus)
-  const day = plan.days[dayIndex] ?? plan.days[0]
+  const days = orderedDays(plan, dayOrder)
+  const day = days[dayIndex] ?? days[0]
   const totals = dayPlanTotals(day, customization, exercises, {})
 
   function choosePlan(planId: string) {
     setSelected(planId)
     setCustomization({})
+    setDayOrder([])
   }
 
   function toSetup() {
@@ -47,7 +51,7 @@ export function PlanSelector({ initialPlan, exercises, onComplete, onCancel }: {
 
   async function confirm() {
     setLoading(true); setError('')
-    try { onComplete((await api.selectPlan(selected, focus, customization)).user) }
+    try { onComplete((await api.selectPlan(selected, focus, customization, dayOrder)).user) }
     catch (reason) { setError(reason instanceof Error ? reason.message : '保存计划失败') }
     finally { setLoading(false) }
   }
@@ -76,10 +80,12 @@ export function PlanSelector({ initialPlan, exercises, onComplete, onCancel }: {
     </header>
 
     <div className="editor-days" role="tablist" aria-label="选择训练日">
-      {plan.days.map((item, index) => <button key={item.id} role="tab" aria-selected={index === dayIndex} className={index === dayIndex ? 'active' : ''} onClick={() => setDayIndex(index)}>
+      {days.map((item, index) => <button key={item.id} role="tab" aria-selected={index === dayIndex} className={index === dayIndex ? 'active' : ''} onClick={() => setDayIndex(index)}>
         <span>DAY {index + 1}</span><strong>{item.name}</strong>
       </button>)}
     </div>
+
+    <DayOrderEditor days={plan.days} order={dayOrder} onChange={setDayOrder}/>
 
     <p className="editor-intro">每个动作默认 {RECOMMENDED_SETS_MIN}–{RECOMMENDED_SETS_MAX} 组，已经按自然训练者的恢复能力排好。想换就点「从动作库添加」，不满意还能全部恢复推荐。</p>
 
