@@ -606,3 +606,142 @@
 .day-order-actions button { width: 34px; height: 34px; display: grid; place-items: center; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
 .day-order-actions button:disabled { opacity: .3; }
 .day-order-hint { color: var(--muted); font-size: 9px; line-height: 1.6; margin-top: 2px; }
+
+/* Visual system refinement：以排版、分组和克制的光影建立层次 */
+.app-shell {
+  background:
+    radial-gradient(680px 420px at 92% -80px, rgba(205, 247, 101, .055), transparent 68%),
+    radial-gradient(520px 520px at -30% 38%, rgba(91, 117, 61, .035), transparent 70%);
+}
+.app-main { width: min(100%, 800px); }
+.page { padding: 26px 18px calc(118px + env(safe-area-inset-bottom)); }
+.page-header h1 { font-size: clamp(38px, 10vw, 46px); line-height: 1.02; letter-spacing: -.055em; }
+.page-header > p:last-child { max-width: 520px; font-size: 14px; line-height: 1.7; }
+.eyebrow { font-size: 10px; letter-spacing: .18em; font-weight: 850; }
+.section-block { margin-top: 34px; }
+.section-title { margin-bottom: 15px; }
+.section-title h2 { font-size: 23px; letter-spacing: -.045em; }
+.section-title > span, .section-title > div > p { font-size: 11px; }
+
+.primary, .secondary, .accent-button { border-radius: 16px; letter-spacing: -.01em; }
+.primary, .accent-button {
+  background: linear-gradient(135deg, #d8fa82, var(--accent) 52%, #b9e94c);
+  box-shadow: var(--shadow-accent), inset 0 1px rgba(255, 255, 255, .35);
+}
+.primary:hover, .accent-button:hover { background: linear-gradient(135deg, #e2ff9b, #d3fa72 52%, #c2ef5b); box-shadow: 0 14px 34px rgba(185, 232, 70, .18); }
+.secondary { background: linear-gradient(180deg, #1d231b, #171c15); border-color: var(--line-strong); box-shadow: inset 0 1px rgba(255,255,255,.025); }
+.icon-button { background: rgba(255,255,255,.035); border-color: var(--line-strong); box-shadow: inset 0 1px rgba(255,255,255,.03); }
+
+/* 首页：训练主卡是视觉焦点，其余内容退后一级 */
+.home-header { margin-bottom: 22px; }
+.home-header p { margin-bottom: 6px; font-size: 12px; }
+.home-header h1 { font-size: clamp(27px, 7vw, 34px); letter-spacing: -.05em; }
+.home-avatar { box-shadow: 0 0 0 3px rgba(205,247,101,.06); }
+.home-avatar img, .avatar-button img, .avatar-preview img { object-fit: cover; object-position: center; }
+.today-hero {
+  min-height: 370px;
+  padding: 24px;
+  border-radius: 30px;
+  border-color: #35412c;
+  background:
+    radial-gradient(420px 280px at 100% 0%, rgba(205,247,101,.16), transparent 66%),
+    linear-gradient(150deg, #1b2316 0%, #11160e 52%, #0c100a 100%);
+  box-shadow: 0 26px 70px rgba(0,0,0,.38), inset 0 1px rgba(255,255,255,.055);
+}
+.today-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(205,247,101,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(205,247,101,.035) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(to bottom left, black, transparent 68%);
+  pointer-events: none;
+}
+.today-hero::after { right: -4px; top: 34px; font-size: 230px; color: rgba(205,247,101,.04); }
+.dark-tag { padding: 7px 11px; background: rgba(205,247,101,.09); border-color: rgba(205,247,101,.2); }
+.today-hero > div:nth-child(2) { margin: 42px 0 26px; }
+.today-hero > div:nth-child(2) p { font-size: 12px; color: #a4ae99; }
+.today-hero h2 { font-size: clamp(40px, 11vw, 52px); max-width: 340px; letter-spacing: -.06em; }
+.hero-metrics { gap: 0; margin-bottom: 20px; padding: 15px 0; border-top: 1px solid rgba(205,247,101,.09); border-bottom: 1px solid rgba(205,247,101,.09); }
+.hero-metrics span { flex: 1; padding-left: 16px; border-left: 1px solid rgba(205,247,101,.09); font-size: 10px; }
+.hero-metrics span:first-child { padding-left: 0; border-left: 0; }
+.hero-metrics strong { font-size: 21px; letter-spacing: -.035em; }
+.accent-button { min-height: 56px; padding: 0 20px; font-size: 14px; }
+.workout-list { gap: 9px; }
+.workout-row { padding: 12px; border-radius: 18px; background: linear-gradient(120deg, #171c15, #131712); box-shadow: var(--shadow-card); }
+.workout-row h3 { font-size: 15px; letter-spacing: -.025em; }
+.workout-row > strong { color: var(--ink); font-size: 23px; }
+.exercise-thumb { border-radius: 13px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
+.safety-note { background: rgba(16,19,14,.72); border-radius: 16px; }
+
+/* 个人页：头像、身份与统计数据形成完整的第一屏 */
+.profile-header {
+  position: relative;
+  isolation: isolate;
+  gap: 17px;
+  margin: 0 0 14px;
+  padding: 22px;
+  overflow: hidden;
+  border: 1px solid #35412c;
+  border-radius: 28px;
+  background: radial-gradient(300px 170px at 0% 0%, rgba(205,247,101,.12), transparent 70%), linear-gradient(145deg, #1a2116, #10140e);
+  box-shadow: var(--shadow-raised);
+}
+.profile-header::after { content: 'F'; position: absolute; z-index: -1; right: 12px; bottom: -56px; color: rgba(205,247,101,.035); font-size: 180px; line-height: 1; font-weight: 950; transform: rotate(-8deg); pointer-events: none; }
+.profile-header > div { min-width: 0; }
+.profile-header > .icon-button { margin-left: auto; align-self: flex-start; }
+.profile-header h1 { font-size: clamp(23px, 6.4vw, 32px); line-height: 1.08; letter-spacing: -.05em; }
+.avatar { width: 72px; height: 72px; flex: none; background: var(--card-soft); }
+.avatar-button { position: relative; flex: none; padding: 0; border: 0; box-shadow: 0 0 0 2px var(--accent), 0 10px 26px rgba(0,0,0,.32); }
+.avatar-button img { width: 100%; height: 100%; min-width: 0; border-radius: inherit; }
+.avatar-edit { right: -3px; bottom: -3px; width: 24px; height: 24px; border: 3px solid #151b11; box-shadow: 0 3px 10px rgba(0,0,0,.3); }
+.profile-username { margin-top: 5px; font-size: 11px; }
+.stats-grid { padding: 20px 10px; border-radius: 22px; border-color: var(--line); background: linear-gradient(145deg, #181e15, #11150f); box-shadow: var(--shadow-card); }
+.stats-grid strong { font-size: 26px; letter-spacing: -.045em; }
+.stats-grid span { font-size: 10px; }
+.current-plan { position: relative; overflow: hidden; padding: 19px 18px; border-radius: 20px; border-color: var(--line-strong); background: linear-gradient(125deg, #1a2017, #131712); box-shadow: var(--shadow-card); }
+.current-plan::before { content: ''; position: absolute; left: 0; top: 18px; bottom: 18px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); box-shadow: 0 0 16px rgba(205,247,101,.25); }
+.current-plan strong { font-size: 18px; letter-spacing: -.025em; }
+.current-plan > svg { color: var(--accent); }
+.plan-actions .secondary { min-height: 46px; }
+.trend-list, .history-list { gap: 9px; }
+.trend-card, .history-list article, .utility-row, .empty-history { border-radius: 18px; background: linear-gradient(120deg, #161b14, #121611); box-shadow: var(--shadow-card); }
+.trend-card { padding: 15px; }
+.trend-copy strong { font-size: 14px; }
+.utility-row { min-height: 66px; padding: 12px 15px; }
+
+/* 资料编辑：预览与最终头像使用同一套无缩进裁切规则 */
+.profile-editor { border-radius: 28px; border-color: var(--line-strong); background: linear-gradient(150deg, #181e15, #11150f); box-shadow: 0 30px 90px rgba(0,0,0,.55); }
+.avatar-preview { background: var(--card-soft); border: 0; box-shadow: 0 0 0 1px var(--line-strong), 0 12px 30px rgba(0,0,0,.25); }
+.avatar-preview img { width: 100%; height: 100%; border-radius: inherit; }
+.profile-editor .field-label input { min-height: 50px; width: 100%; margin-top: 2px; padding: 0 14px; color: var(--ink); background: var(--card-soft); border: 1px solid var(--line-strong); border-radius: 14px; outline: none; }
+.profile-editor .field-label input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(205,247,101,.07); }
+
+/* 动作库与训练页共享同一组表面层级 */
+.search-field, .all-exercises, .exercise-row, .picker-row, .editor-card, .exercise-session { box-shadow: var(--shadow-card); }
+.muscle-grid { gap: 10px; }
+.muscle-tile { border-radius: 21px; border-color: var(--line); background: radial-gradient(160px 100px at 100% 0%, rgba(205,247,101,.06), transparent 70%), linear-gradient(145deg, #181f15, #10140e); }
+.exercise-list { gap: 9px; }
+.exercise-row { border-radius: 17px; background: linear-gradient(120deg, #161b14, #121611); }
+.exercise-session { padding: 16px; border-radius: 24px; background: linear-gradient(145deg, #171c15, #121611); }
+.bottom-nav { background: rgba(18,22,16,.9); border-color: #36402f; box-shadow: 0 18px 54px rgba(0,0,0,.52), inset 0 1px rgba(255,255,255,.045); }
+.bottom-nav button.active { background: rgba(205,247,101,.1); box-shadow: inset 0 0 0 1px rgba(205,247,101,.055); }
+
+@media (hover: hover) {
+  .workout-row:hover, .exercise-row:hover, .trend-card:hover, .utility-row:hover, .current-plan:hover { border-color: var(--line-strong); }
+  .muscle-tile:hover { border-color: #4a5b38; }
+}
+
+@media (min-width: 760px) {
+  .page { padding: 34px 28px 126px; }
+  .today-hero { padding: 30px; }
+  .profile-header { padding: 26px; }
+  .section-block { margin-top: 38px; }
+}
+
+@media (max-width: 370px) {
+  .profile-header { gap: 13px; padding: 18px 15px; }
+  .avatar { width: 64px; height: 64px; }
+  .today-hero { padding: 20px; }
+  .hero-metrics span { padding-left: 10px; }
+}

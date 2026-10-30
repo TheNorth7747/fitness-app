@@ -156,7 +156,7 @@ export function ProfileScreen({ user, onChangePlan, onCustomize, onProfileChange
     </section>
 
     <button className="logout-button" onClick={onLogout}><Icon name="logout"/>退出登录</button>
-    <p className="attribution">Fitday v1.6.0<br/>动作数据：hasaneyldrm/exercises-dataset<br/>媒体：© Gym visual · 计划参考：B站好人松松</p>
+    <p className="attribution">Fitday v1.7.0<br/>动作数据：hasaneyldrm/exercises-dataset<br/>媒体：© Gym visual · 计划参考：B站好人松松</p>
 
     {editingProfile && <ProfileEditor user={user} onSave={async (displayName, avatar) => { await onProfileChange(displayName, avatar); setEditingProfile(false) }} onClose={() => setEditingProfile(false)}/>}
     {selectedTrend && <div className="modal-backdrop" onClick={() => setSelectedTrend(null)}><article className="exercise-modal trend-detail" onClick={(event) => event.stopPropagation()}>

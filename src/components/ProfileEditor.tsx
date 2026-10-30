@@ -14,13 +14,11 @@ async function compressImage(file: File): Promise<string> {
   canvas.height = AVATAR_SIZE
   const context = canvas.getContext('2d')
   if (!context) throw new Error('浏览器不支持图片处理')
-  // 取中间正方形，再缩到 92%：圆形裁切时人脸/主体不会被切掉
+  // 居中裁切为正方形并铺满画布，圆形遮罩只由显示端负责
   const side = Math.min(bitmap.width, bitmap.height)
-  context.fillStyle = '#141711'
-  context.fillRect(0, 0, AVATAR_SIZE, AVATAR_SIZE)
-  const inset = Math.round(AVATAR_SIZE * 0.04)
-  const target = AVATAR_SIZE - inset * 2
-  context.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, inset, inset, target, target)
+  context.imageSmoothingEnabled = true
+  context.imageSmoothingQuality = 'high'
+  context.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, AVATAR_SIZE, AVATAR_SIZE)
   bitmap.close?.()
   return canvas.toDataURL('image/jpeg', AVATAR_QUALITY)
 }
