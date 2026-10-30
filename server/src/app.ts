@@ -82,6 +82,8 @@ const workoutSchema = z.object({
   })).min(1).max(120),
 })
 
+const workoutUpdateSchema = workoutSchema.omit({ planDayId: true })
+
 export async function buildApp(pool: pg.Pool): Promise<FastifyInstance> {
   const app = Fastify({ logger: true, trustProxy: true })
   await app.register(cookie)
@@ -351,6 +353,86 @@ export async function buildApp(pool: pg.Pool): Promise<FastifyInstance> {
       await client.query('ROLLBACK')
       throw error
     } finally { client.release() }
+  })
+
+  app.put('/api/me/workouts/:id', async (request, reply) => {
+    const user = await requireUser(request, reply)
+    if (!user) return
+    const params = z.object({ id: z.uuid() }).safeParse(request.params)
+    if (!params.success) return reply.code(400).send({ message: '训练记录编号不正确' })
+    const parsed = workoutUpdateSchema.safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ message: '训练数据不完整或格式不正确' })
+    if (new Date(parsed.data.completedAt).getTime() < new Date(parsed.data.startedAt).getTime()) {
+      return reply.code(400).send({ message: '训练时间不正确' })
+    }
+
+    const stored = await pool.query<{ plan_id: string; plan_day_id: string }>(
+      'SELECT plan_id, plan_day_id FROM workouts WHERE id = $1 AND user_id = $2',
+      [params.data.id, user.id],
+    )
+    const workout = stored.rows[0]
+    if (!workout) return reply.code(404).send({ message: '训练记录不存在' })
+
+    const existingSets = await pool.query<{ exercise_key: string }>(
+      'SELECT exercise_key FROM workout_sets WHERE workout_id = $1',
+      [params.data.id],
+    )
+    const allowedKeys = new Set(existingSets.rows.map((row) => row.exercise_key))
+    if (parsed.data.sets.some((set) => !allowedKeys.has(set.exerciseKey))) {
+      return reply.code(400).send({ message: '历史记录只能修正原有动作的重量与次数' })
+    }
+    const seenSetNumbers = new Set<string>()
+    for (const set of parsed.data.sets) {
+      const key = `${set.exerciseKey}:${set.setNumber}`
+      if (seenSetNumbers.has(key)) return reply.code(400).send({ message: '同一动作存在重复组次' })
+      seenSetNumbers.add(key)
+    }
+
+    const plan = getPlan(workout.plan_id, user.leg_focus)
+    const day = plan.days.find((item) => item.id === workout.plan_day_id)
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+      await client.query(
+        'UPDATE workouts SET started_at = $1, completed_at = $2 WHERE id = $3 AND user_id = $4',
+        [parsed.data.startedAt, parsed.data.completedAt, params.data.id, user.id],
+      )
+      await client.query('DELETE FROM workout_sets WHERE workout_id = $1', [params.data.id])
+      for (const set of parsed.data.sets) {
+        await client.query(
+          `INSERT INTO workout_sets (id, workout_id, exercise_key, exercise_id, exercise_name, set_number, reps, weight_kg)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [randomUUID(), params.data.id, set.exerciseKey, set.exerciseId, set.exerciseName, set.setNumber, set.reps, set.weightKg],
+        )
+      }
+      await client.query('COMMIT')
+      const record: WorkoutRecord = {
+        id: params.data.id,
+        planName: plan.name,
+        planDayName: day?.name ?? '训练记录',
+        planDayId: workout.plan_day_id,
+        startedAt: parsed.data.startedAt,
+        completedAt: parsed.data.completedAt,
+        sets: parsed.data.sets,
+      }
+      return { workout: record }
+    } catch (error) {
+      await client.query('ROLLBACK')
+      throw error
+    } finally { client.release() }
+  })
+
+  app.delete('/api/me/workouts/:id', async (request, reply) => {
+    const user = await requireUser(request, reply)
+    if (!user) return
+    const params = z.object({ id: z.uuid() }).safeParse(request.params)
+    if (!params.success) return reply.code(400).send({ message: '训练记录编号不正确' })
+    const deleted = await pool.query(
+      'DELETE FROM workouts WHERE id = $1 AND user_id = $2 RETURNING id',
+      [params.data.id, user.id],
+    )
+    if (!deleted.rowCount) return reply.code(404).send({ message: '训练记录不存在' })
+    return reply.code(204).send()
   })
 
   app.setErrorHandler((error, _request, reply) => {

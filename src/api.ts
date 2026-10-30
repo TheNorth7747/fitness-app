@@ -1,4 +1,4 @@
-import type { EquipmentGroup, Exercise, MuscleGroup, User, WorkoutInput, WorkoutRecord } from '../shared/api'
+import type { EquipmentGroup, Exercise, MuscleGroup, User, WorkoutInput, WorkoutRecord, WorkoutUpdateInput } from '../shared/api'
 import { defaultMuscleForGroup, findExercise, matchExercise, searchExercises } from '../shared/exercises'
 import type { LegFocus, PlanCustomization } from '../shared/plans'
 
@@ -27,6 +27,10 @@ export const api = {
   saveWorkout: (workout: WorkoutInput) =>
     request<{ workout: WorkoutRecord; user: User }>('/api/me/workouts', { method: 'POST', body: JSON.stringify(workout) }),
   workouts: () => request<{ workouts: WorkoutRecord[] }>('/api/me/workouts'),
+  updateWorkout: (id: string, workout: WorkoutUpdateInput) =>
+    request<{ workout: WorkoutRecord }>(`/api/me/workouts/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(workout) }),
+  deleteWorkout: (id: string) =>
+    request<void>(`/api/me/workouts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   savePlanCustomization: (customization: PlanCustomization) =>
     request<{ user: User }>('/api/me/plan-customization', { method: 'PUT', body: JSON.stringify({ customization }) }),
   saveDayOrder: (dayOrder: string[]) =>

@@ -64,3 +64,6 @@ export interface WorkoutRecord extends WorkoutInput {
   planName: string
   planDayName: string
 }
+
+/** 历史记录纠错只允许改时间与组次，训练所属计划/训练日保持不变 */
+export type WorkoutUpdateInput = Omit<WorkoutInput, 'planDayId'>

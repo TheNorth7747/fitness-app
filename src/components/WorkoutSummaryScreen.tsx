@@ -20,7 +20,7 @@ export function WorkoutSummaryScreen({ summary, onDone, onHome }: { summary: Wor
         : <p className="summary-empty">没有打破记录也没关系。按计划完成 {summary.exerciseCount} 个动作，本身就是有效训练。</p>}
     </section>
     <div className="summary-actions">
-      <button className="primary full" onClick={onDone}>查看训练记录</button>
+      <button className="primary full" onClick={onDone}>查看本周数据</button>
       <button className="text-button" onClick={onHome}>回到首页</button>
     </div>
   </main>

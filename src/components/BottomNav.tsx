@@ -1,11 +1,12 @@
 import { Icon } from './Icon'
 
-export type Tab = 'home' | 'library' | 'profile'
+export type Tab = 'home' | 'library' | 'data' | 'profile'
 
 export function BottomNav({ active, onChange }: { active: Tab; onChange: (tab: Tab) => void }) {
   const items = [
     { id: 'home' as const, label: '首页', icon: 'home' as const },
     { id: 'library' as const, label: '动作库', icon: 'library' as const },
+    { id: 'data' as const, label: '数据', icon: 'chart' as const },
     { id: 'profile' as const, label: '我的', icon: 'user' as const },
   ]
   return <nav className="bottom-nav" aria-label="主导航">

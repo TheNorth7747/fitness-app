@@ -1,4 +1,4 @@
-interface IconProps { name: 'home' | 'library' | 'user' | 'arrow' | 'back' | 'check' | 'clock' | 'close' | 'plus' | 'logout' | 'spark' | 'chart' | 'download' | 'install' | 'search' | 'swap' | 'camera' | 'edit'; size?: number }
+interface IconProps { name: 'home' | 'library' | 'user' | 'arrow' | 'back' | 'check' | 'clock' | 'close' | 'plus' | 'logout' | 'spark' | 'chart' | 'download' | 'install' | 'search' | 'swap' | 'camera' | 'edit' | 'trash'; size?: number }
 
 export function Icon({ name, size = 22 }: IconProps) {
   const paths = {
@@ -14,6 +14,7 @@ export function Icon({ name, size = 22 }: IconProps) {
     swap: <><path d="M4 8h12l-3-3M20 16H8l3 3"/></>,
     camera: <><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.7l1.2-2h6.2l1.2 2h1.7A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.3"/></>,
     edit: <><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M14.5 5.5 18.5 9.5"/></>,
+    trash: <><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/><path d="M10 11v5M14 11v5"/></>,
     logout: <><path d="M10 4H4v16h6M14 8l4 4-4 4M8 12h10"/></>,
     spark: <><path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7z"/><path d="m18.5 16 .7 2.1 2.1.7-2.1.7-.7 2.1-.7-2.1-2.1-.7 2.1-.7z"/></>,
     chart: <><path d="M4 20V5M4 20h16"/><path d="m7 16 4-5 4 3 5-7"/></>,

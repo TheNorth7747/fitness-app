@@ -5,6 +5,7 @@ import type { Exercise, User } from '../shared/api'
 import { getPlan, orderedDays, type PlanDay } from '../shared/plans'
 import type { WorkoutSummary } from '../shared/progression'
 import { BottomNav, type Tab } from './components/BottomNav'
+import { DataScreen, GuestData } from './components/DataScreen'
 import { GuestProfile } from './components/GuestProfile'
 import { HomeScreen } from './components/HomeScreen'
 import { LibraryScreen } from './components/LibraryScreen'
@@ -126,7 +127,7 @@ function App() {
   }
 
   if (checking) return <main className="app-loading"><div className="brand-mark">F<span>·</span></div><p>正在恢复你的训练进度</p></main>
-  if (summary) return <WorkoutSummaryScreen summary={summary} onDone={() => { setSummary(null); setTab('profile') }} onHome={() => { setSummary(null); setTab('home') }}/>
+  if (summary) return <WorkoutSummaryScreen summary={summary} onDone={() => { setSummary(null); setTab('data') }} onHome={() => { setSummary(null); setTab('home') }}/>
   if (user && editingDayId) return <PlanEditorScreen user={user} exercises={exercises} initialDayId={editingDayId} onSave={async (customization, dayOrder) => {
     const result = await api.savePlanCustomization(customization)
     applyUser(dayOrder.length ? (await api.saveDayOrder(dayOrder)).user : result.user)
@@ -145,8 +146,11 @@ function App() {
         applyUser(result.user)
       }}/>}
       {tab === 'library' && <LibraryScreen exercises={exercises} loading={exerciseLoading} error={exerciseError} onRetry={fetchExercises}/>}
+      {tab === 'data' && (user
+        ? <DataScreen user={user} exercises={exercises} onGoHome={() => setTab('home')}/>
+        : <GuestData onLogin={() => requireAuth('登录后可查看本周训练数据与历史记录。')}/>)}
       {tab === 'profile' && (user
-        ? <ProfileScreen user={user} onChangePlan={requestPlanChange} onCustomize={() => { const plan = getPlan(user.planId ?? 'gym-three', user.legFocus); setEditingDayId(orderedDays(plan, user.planDayOrder)[user.cyclePosition % plan.days.length].id) }} onProfileChange={async (displayName, avatar) => { const result = await api.saveProfile(displayName, avatar); applyUser(result.user) }} onLogout={async () => {
+        ? <ProfileScreen user={user} onChangePlan={requestPlanChange} onCustomize={() => { const plan = getPlan(user.planId ?? 'gym-three', user.legFocus); setEditingDayId(orderedDays(plan, user.planDayOrder)[user.cyclePosition % plan.days.length].id) }} onOpenData={() => setTab('data')} onProfileChange={async (displayName, avatar) => { const result = await api.saveProfile(displayName, avatar); applyUser(result.user) }} onLogout={async () => {
           try { await api.logout() } catch { /* Offline logout still clears this device. */ }
           clearWorkoutDraft(user.id); applyUser(null); setDraft(null); setActiveDay(null); setChangingPlan(false); setTab('profile')
         }}/>
