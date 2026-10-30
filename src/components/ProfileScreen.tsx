@@ -111,7 +111,6 @@ export function ProfileScreen({ user, onChangePlan, onCustomize, onProfileChange
     <header className="profile-header">
       <button className="avatar avatar-button" onClick={() => setEditingProfile(true)} aria-label="编辑头像与昵称">
         {user.avatar ? <img src={user.avatar} alt=""/> : <span>{displayNameOf(user).slice(0, 1).toUpperCase()}</span>}
-        <span className="avatar-edit"><Icon name="camera" size={14}/></span>
       </button>
       <div><p className="eyebrow">我的训练</p><h1>{displayNameOf(user)}</h1>{user.displayName && <p className="profile-username">@{user.username}</p>}</div>
       <button className="icon-button" onClick={() => setEditingProfile(true)} aria-label="编辑资料"><Icon name="edit"/></button>
